@@ -1,0 +1,55 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Learnova - Login</title>
+    <link rel="stylesheet" href="style.css">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&display=swap" rel="stylesheet">
+</head>
+<body>
+    <div class="logo">Learnova</div>
+    <div class="container">
+        <form action="dashboard.html" method="post">
+            <h1>Hey, Welcome Back!</h1>
+            <p>We are very happy to see you again!</p>
+            
+            <div class="form-group">
+                <label for="email">Email</label>
+                <input type="email" id="email" name="email" placeholder="learnovauser@gmail.com" required>
+            </div>
+
+            <div class="form-group">
+                <label for="password">Password</label>
+                <input type="password" id="password" name="password" placeholder="************" required>
+            </div>
+
+            <div class="checkbox-group">
+                <div class="checkbox-container">
+                    <input type="checkbox" id="remember" name="remember">
+                    <label for="remember">Remember me</label>
+                </div>
+            </div>
+
+            <button type="submit" class="login-btn">Login</button>
+
+            <div class="divider">
+                <span>OR</span>
+            </div>
+
+            <div class="social-login">
+                <button type="button" class="social-btn">
+                    <img src="google.jpg" alt="Google">
+                    <a class = "social" href="https://www.google.com/">Sign in with Google</a>
+                </button>
+                <button type="button" class="social-btn">
+                    <img src="microsoft.png" alt="Microsoft">
+                    <a class = "social" href="https://www.microsoft.com/">Sign in with Microsoft</a>
+                </button>
+            </div>
+
+            <p class="signup-text">Don't have an account? <a href="signup.html">Signup</a></p>
+        </form>
+    </div>
+</body>
+</html>

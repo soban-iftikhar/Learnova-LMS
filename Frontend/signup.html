@@ -1,0 +1,61 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Learnova - Sign up</title>
+    <link rel="stylesheet" href="signup.css">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&display=swap" rel="stylesheet">
+</head>
+<body>
+    <div class="logo">Learnova</div>
+    <div class="container">
+        <form action="index.html" method="post">
+            <h1>Welcome aboard! </h1>
+            <p>Let's build your learning experience together.</p>
+            
+            <div class="form-group">
+                <label for="username">Username</label>
+                <input type="text" id="username" name="username" placeholder="_learnova_user" required>
+            </div>
+
+            <div class="form-group">
+                <label for="email">Email</label>
+                <input type="email" id="email" name="email" placeholder="learnovauser@gmail.com" required>
+            </div>
+
+            <div class="form-group">
+                <label for="password">Password</label>
+                <input type="password" id="password" name="password" placeholder="************" required>
+            </div>
+
+            <div class="form-group">
+                <label for="confirm_password">Confirm Password</label>
+                <input type="password" id="confirm_password" name="confirm_password" placeholder="************" required>
+            </div>
+
+            <div class="checkbox-container">
+                <input type="checkbox" id="terms" name="terms" required>
+                <label for="terms">By signing up, you are creating a Learnova account, and you agree to its <a href="#">Term of Use</a> and <a href="#">Privacy Policy</a>.</label>
+            </div>
+
+            <button type="submit" class="signup-btn">Sign up</button>
+
+            <div class="divider">OR</div>
+
+            <div class="social-login">
+                <button type="button" class="social-btn">
+                    <img src="google.jpg" alt="Google">
+                    <a class = "social" href="https://www.google.com/">Sign up with Google</a>
+                </button>
+                <button type="button" class="social-btn">
+                    <img src="microsoft.png" alt="Microsoft">
+                    <a class = "social" href="https://www.microsoft.com/">Sign in with Microsoft</a>
+                </button>
+            </div>
+
+            <p class="login-text">Already have an account? <a href="index.html">Login</a></p>
+        </form>
+    </div>
+</body>
+</html>

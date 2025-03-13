@@ -1,0 +1,272 @@
+body {
+  font-family: "Inter", sans-serif;
+  margin: 0;
+}
+.navbar {
+  margin-top: auto;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  background-color: black;
+  padding: 10px 20px;
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100%;
+  z-index: 1000;
+  box-shadow: 0 4px 8px rgba(0, 0, 0, 0.2);
+}
+
+.logo {
+  font-size: 2.5rem;
+  font-weight: 600;
+  margin: 0;
+  background: linear-gradient(360deg, #ff69b4, #4169e1);
+  background-clip: text;
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+}
+
+.nav-links li {
+  margin: 0 25px;
+}
+
+.nav-links {
+  display: flex;
+  list-style: none;
+}
+
+.nav-links a {
+  text-decoration: none;
+  color: aliceblue;
+  padding: 10px 15px;
+  display: block;
+  transition: background-color 0.3s, box-shadow 0.3s, transform 0.3s;
+}
+
+.nav-links a:hover {
+  background-color: #ff69b4;
+  border-radius: 5px;
+  box-shadow: 0px 4px 8px rgba(255, 255, 255, 0.5);
+  transform: scale(1.1);
+}
+
+.hero {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding-left: 2%;
+}
+
+.hero-content {
+  max-width: 600px;
+  padding-top: 0%;
+}
+
+.hero-content h1 {
+  margin-top: 60px;
+  font-size: 2.5rem;
+  color: #008080;
+}
+
+.hero-content h2 {
+  font-size: 1.8rem;
+  margin-bottom: 2rem;
+}
+.info-box {
+  background-color: #f5f5f5;
+  border: 1px solid #e0e0e0;
+  border-radius: 8px;
+  padding: 1.5rem;
+  margin-bottom: 1rem;
+  font-size: 1rem;
+  display: flex;
+  flex-direction: column;
+}
+
+.course-button {
+  background-color: #000000;
+  color: white;
+  border: none;
+  padding: 1rem 2rem;
+  border-radius: 8px;
+  font-size: 1rem;
+  font-weight: 500;
+  cursor: pointer;
+  transition: background-color 0.3s, box-shadow 0.3s, transform 0.3s;
+  margin-left: auto;
+}
+
+.course-button:hover {
+  background-color: #ff69b4;
+  border-radius: 5px;
+  box-shadow: 0px 4px 8px rgba(255, 255, 255, 0.5);
+  transform: scale(1.1);
+}
+
+.hero-image {
+  max-width: 40%;
+  margin-top: 60px;
+  margin-right: 7%;
+}
+
+.hero-image img {
+  width: 100%;
+  height: auto;
+  padding-top: 7%;
+  
+}
+.partners{
+  margin :2%;
+}
+
+.partner-logos {
+  display: flex;
+  justify-content: space-around;
+  align-items: center;
+  gap: 2rem;
+}
+
+.partner-logos img {
+  padding: 0%;
+  display: inline-block;
+  max-height: 80px;
+  width: 80px;
+  opacity: 0.7;
+  transition: opacity 0.3s;
+}
+
+.partner-logos img:hover {
+  opacity: 1;
+}
+
+@media (max-width: 768px) {
+  .hero {
+    flex-direction: column;
+    text-align: center;
+    gap: 2rem;
+  }
+
+  .hero-image {
+    max-width: 80%;
+    order: -1;
+  }
+
+  .nav-links {
+    display: none;
+  }
+
+  .partner-logos {
+    flex-wrap: wrap;
+    justify-content: center;
+  }
+}
+.popular-courses {
+  background-color: aliceblue;
+  padding: 2%;
+}
+
+.course-list {
+  display: flex;
+  justify-content: center;
+  gap: 80px;
+  flex-wrap: wrap;
+}
+
+.course-item {
+  padding: 15px;
+  border-radius: 10px;
+  text-align: center;
+  box-shadow: 0px 4px 8px rgba(0, 0, 0, 0.2);
+  transition: transform 0.3s, box-shadow 0.3s;
+}
+
+.course-item:hover {
+  transform: translateY(-5px);
+  box-shadow: 0px 6px 12px rgba(0, 0, 0, 0.3);
+}
+
+.course-item img {
+  height: 150px;
+  width: 200px;
+  border-radius: 10px;
+  transition: transform 0.3s;
+}
+
+.course-item img:hover {
+  transform: scale(1.05);
+}
+
+.course-item a {
+  text-decoration: none;
+}
+.course-button {
+  margin: auto;
+}
+
+.certified-courses {
+  background-color: aliceblue;
+  padding: 2%;
+}
+
+.instructors {
+  padding: 2%;
+  display: flex;
+  justify-content: space-between;
+}
+
+.instructor-list {
+  display: flex;
+  justify-content: center;
+  gap: 80px;
+  flex-wrap: wrap;
+  text-align: center;
+}
+
+.instructor-box img {
+  height: 200px;
+  width: 200px;
+  border-radius: 50%;
+  object-fit: cover;
+}
+
+.instructors a {
+  text-decoration: none;
+  margin-top: 20px;
+  margin-right: 10px;
+}
+
+/* Footer */
+.footer {
+  background-color: #050505;
+  color: #fff;
+  padding: 20px 0;
+}
+
+.footer-content {
+  max-width: 1200px;
+  margin: 0 auto;
+  display: flex;
+  justify-content: space-between;
+}
+
+.footer-content p {
+  margin: 10px 0;
+}
+.footer a {
+  color: #fff;
+  text-decoration: none;
+  margin: 0 10px;
+}
+
+.footer a:hover {
+  text-decoration: underline;
+}
+
+.footer-links {
+  margin: 10px 0;
+}
+
+.footer-social {
+  margin: 10px 0;
+}
