@@ -9,12 +9,15 @@ import lombok.*;
 @Setter
 @NoArgsConstructor
 @AllArgsConstructor
-public class Instructor {
+public class Instructor extends User {
 
-    @Id
-    @GeneratedValue(strategy = GenerationType.IDENTITY)
-    private Long id;
+    @Column(name = "qualification")
+    private String qualification;
 
-    @Column(nullable = false, unique = true)
-    private String name;
+    @Column(name = "experience")
+    private String experience;
+
+    @Column(name = "joining_date")
+    private String joiningDate;
+
 }

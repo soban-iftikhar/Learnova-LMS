@@ -3,7 +3,6 @@ package lms.learnova.Model;
 import jakarta.persistence.*;
 import lombok.*;
 
-import java.util.Set;
 
 @Entity
 @Table(name = "students")
@@ -11,15 +10,17 @@ import java.util.Set;
 @Setter
 @NoArgsConstructor
 @AllArgsConstructor
-public class Student {
+public class Student extends User {
 
-    @Id
-    @GeneratedValue(strategy = GenerationType.IDENTITY)
-    private Long id;
 
-    @Column(nullable = false, unique = true)
-    private String name;
+    @Column(name = "registration_number", nullable = false)
+    private String registrationNumber;
 
-    @ManyToMany(mappedBy = "students")
-    private Set<Course> courses;
+    @Column(name = "degree_program")
+    private String degreeProgram;
+
+    @Column(name = "enrollment_date")
+    private String enrollmentDate;
+
+
 }

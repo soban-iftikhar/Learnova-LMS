@@ -1,9 +1,9 @@
 package lms.learnova.Model;
 
 import jakarta.persistence.*;
+import java.util.List;
+import java.util.Objects;
 import lombok.*;
-
-import java.util.Set;
 
 @Entity
 @Table(name = "courses")
@@ -13,77 +13,58 @@ import java.util.Set;
 @AllArgsConstructor
 public class Course {
 
-    @Id
-    @GeneratedValue(strategy = GenerationType.IDENTITY)
-    private Long id;
+@Id
+    @GeneratedValue(strategy = GenerationType.AUTO)
+    @Column(name = "course_id")
+    private int id;
 
-    @Column(nullable = false, unique = true)
+    @Column(name = "course_title", nullable = false)
     private String title;
 
-    @Column(length = 500)
+    @Column(name = "course_description")
     private String description;
 
-    @Column
+    @Column(name = "course_category")
     private String category;
 
     @ManyToOne
-    @JoinColumn(name = "instructor_id") // Foreign key for Instructor
+    @JoinColumn(name = "instructor_id", nullable = false)
     private Instructor instructor;
-
-    public Set<Student> getStudents() {
-        return students;
-    }
-
-    public void setStudents(Set<Student> students) {
-        this.students = students;
-    }
-
-    public Instructor getInstructor() {
-        return instructor;
-    }
-
-    public void setInstructor(Instructor instructor) {
-        this.instructor = instructor;
-    }
-
-    public String getCategory() {
-        return category;
-    }
-
-    public void setCategory(String category) {
-        category = category;
-    }
-
-    public String getDescription() {
-        return description;
-    }
-
-    public void setDescription(String description) {
-        this.description = description;
-    }
-
-    public String getTitle() {
-        return title;
-    }
-
-    public void setTitle(String title) {
-        this.title = title;
-    }
-
-    public Long getId() {
-        return id;
-    }
-
-    public void setId(Long id) {
-        this.id = id;
-    }
 
     @ManyToMany
     @JoinTable(
-            name = "course_students",
+            name = "course_enrollments",
             joinColumns = @JoinColumn(name = "course_id"),
             inverseJoinColumns = @JoinColumn(name = "student_id")
-    ) // Creates a join table "course_students" with course_id & student_id
-    private Set<Student> students; // Many-to-many relationship with Student
+    )
+    private List<Student> enrolledStudents;
 
+    @Override
+    public String toString() {
+        return "Course{" +
+                "id=" + id +
+                ", title='" + title + '\'' +
+                ", description='" + description + '\'' +
+                ", category='" + category + '\'' +
+                ", instructor=" + (instructor != null ? instructor.getId() : null) +
+                ", enrolledStudents=" + (enrolledStudents != null ? enrolledStudents.size() : 0) +
+                '}';
+    }
+
+
+    @Override
+    public boolean equals(Object o) {
+        if (this == o) return true;
+        if (!(o instanceof Course)) return false;
+        Course course = (Course) o;
+        return id == course.id &&
+                Objects.equals(title, course.title) &&
+                Objects.equals(description, course.description) &&
+                Objects.equals(category, course.category);
+    }
+
+    @Override
+    public int hashCode() {
+        return Objects.hash(id, title, description, category);
+    }
 }
