@@ -16,9 +16,9 @@ import lombok.*;
 public class Course {
 
     @Id
-    @GeneratedValue(strategy = GenerationType.IDENTITY)  // Changed from AUTO to IDENTITY
+    @GeneratedValue(strategy = GenerationType.IDENTITY)
     @Column(name = "course_id")
-    private Long courseId;  // Changed from int id to Long courseId
+    private Long id;
 
     @Column(name = "course_title", nullable = false)
     private String title;
@@ -48,7 +48,7 @@ public class Course {
     @Override
     public String toString() {
         return "Course{" +
-                "courseId=" + courseId +
+                "courseId=" + id +
                 ", title='" + title + '\'' +
                 ", description='" + description + '\'' +
                 ", category='" + category + '\'' +
@@ -61,7 +61,7 @@ public class Course {
         if (this == o) return true;
         if (!(o instanceof Course)) return false;
         Course course = (Course) o;
-        return Objects.equals(courseId, course.courseId) &&
+        return Objects.equals(id, course.id) &&
                 Objects.equals(title, course.title) &&
                 Objects.equals(description, course.description) &&
                 Objects.equals(category, course.category);
@@ -69,6 +69,6 @@ public class Course {
 
     @Override
     public int hashCode() {
-        return Objects.hash(courseId, title, description, category);
+        return Objects.hash(id, title, description, category);
     }
 }

@@ -43,7 +43,6 @@ public class StudentService {
         existingStudent.setPassword(student.getPassword());
         existingStudent.setRegistrationNumber(student.getRegistrationNumber());
         existingStudent.setDegreeProgram(student.getDegreeProgram());
-        existingStudent.setEnrollmentDate(student.getEnrollmentDate());
         return studentRepo.save(existingStudent);
     }
 

@@ -27,8 +27,6 @@ public class Student extends User {
     @Column(name = "degree_program")
     private String degreeProgram;
 
-    @Column(name = "enrollment_date")
-    private String enrollmentDate;
 
     @JsonIgnore
     @ManyToMany(mappedBy = "enrolledStudents", fetch = FetchType.LAZY)
@@ -42,7 +40,6 @@ public class Student extends User {
                 ", email='" + getEmail() + '\'' +
                 ", registrationNumber='" + registrationNumber + '\'' +
                 ", degreeProgram='" + degreeProgram + '\'' +
-                ", enrollmentDate='" + enrollmentDate + '\'' +
                 '}';
     }
 
@@ -53,12 +50,11 @@ public class Student extends User {
         if (!super.equals(o)) return false;
         Student student = (Student) o;
         return registrationNumber.equals(student.registrationNumber) &&
-                degreeProgram.equals(student.degreeProgram) &&
-                enrollmentDate.equals(student.enrollmentDate);
+                degreeProgram.equals(student.degreeProgram);
     }
 
     @Override
     public int hashCode() {
-        return Objects.hash(super.hashCode(), registrationNumber, degreeProgram, enrollmentDate);
+        return Objects.hash(super.hashCode(), registrationNumber, degreeProgram);
     }
 }

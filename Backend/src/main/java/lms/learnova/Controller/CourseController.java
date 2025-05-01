@@ -68,15 +68,4 @@ public class CourseController {
         }
     }
 
-    @GetMapping("/getCoursesByInstructor/{instructorId}")
-    public List<Course> getCoursesByInstructor(@PathVariable Long instructorId) {
-        return courseService.getCoursesByInstructor(instructorId);
-    }
-
-
-    @GetMapping("/getEnrolledStudents/{courseId}")
-    public List<String> getEnrolledStudents(@PathVariable Long courseId) {
-        return courseService.getEnrolledStudents(courseId);
-    }
-
 }

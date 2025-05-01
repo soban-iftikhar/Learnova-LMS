@@ -4,6 +4,7 @@ import com.fasterxml.jackson.annotation.JsonIgnore;
 import jakarta.persistence.*;
 import lombok.*;
 
+import java.util.Date;
 import java.util.List;
 import java.util.Objects;
 
@@ -18,14 +19,20 @@ import java.util.Objects;
 @Table(name = "instructors")
 public class Instructor extends User {
 
-    @Column(name = "qualification")
-    private String qualification;
 
-    @Column(name = "experience")
-    private String experience;
+    public enum Qualification {
+        BS, MS, PhD
+    }
+    @Enumerated(EnumType.STRING)
+    @Column(name = "qualification")
+    private Qualification qualification;
+
+
+    @Column(name = "experience_in_years")
+    private int experience;
 
     @Column(name = "joining_date")
-    private String joiningDate;
+    private Date joiningDate;
 
     @OneToMany(mappedBy = "instructor", fetch = FetchType.LAZY, cascade = CascadeType.ALL)
     @JsonIgnore
@@ -51,7 +58,7 @@ public class Instructor extends User {
         if (!super.equals(o)) return false;
         Instructor that = (Instructor) o;
         return qualification.equals(that.qualification) &&
-                experience.equals(that.experience) &&
+                experience == (that.experience) &&
                 joiningDate.equals(that.joiningDate);
     }
 

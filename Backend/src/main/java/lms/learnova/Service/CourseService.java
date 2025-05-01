@@ -56,10 +56,6 @@ public class CourseService {
         return courseRepository.findByTitle(title);
     }
 
-    public List<Course> getCoursesByInstructor(Long instructorId) {
-        return courseRepository.findByInstructorId(instructorId);
-    }
-
     public Course updateCourse(Long courseId, UpdateCourseRequest request) {
         Course existingCourse = courseRepository.findById(courseId)
                 .orElseThrow(() -> new RuntimeException("Course with ID " + courseId + " not found"));
