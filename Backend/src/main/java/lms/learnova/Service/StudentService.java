@@ -46,4 +46,19 @@ public class StudentService {
         existingStudent.setEnrollmentDate(student.getEnrollmentDate());
         return studentRepo.save(existingStudent);
     }
+
+    public boolean login(String email, String password) {
+        Student student = studentRepo.findByEmail(email);
+        if (student != null) {
+            return student.getPassword().equals(password);
+        }
+        return false;
+    }
+
+    public Student signup(Student student) {
+        if (studentRepo.findByEmail(student.getEmail()) != null) {
+            throw new RuntimeException("Email already exists");
+        }
+        return studentRepo.save(student);
+    }
 }

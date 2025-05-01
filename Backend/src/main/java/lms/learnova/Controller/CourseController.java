@@ -1,5 +1,7 @@
 package lms.learnova.Controller;
 
+import lms.learnova.DTOs.CreateCourseRequest;
+import lms.learnova.DTOs.UpdateCourseRequest;
 import lms.learnova.Model.Course;
 import lms.learnova.Model.Instructor;
 import lms.learnova.Service.CourseService;
@@ -26,7 +28,7 @@ public class CourseController {
         return courseService.getAllCourses();
     }
 
-    @GetMapping("searchCourseById/{id}")
+    @GetMapping("/searchCourseById/{id}")
     public Course getCourseById(@PathVariable Long id) {
         return courseService.getCourseById(id);
     }
@@ -36,26 +38,20 @@ public class CourseController {
         return courseService.searchCourseByTitle(title);
     }
 
-    @GetMapping("/searchCoursesByCategory{category}")
-    public List<Course> searchCourseByCategory(@PathVariable String category) {
-        return courseService.searchCourseByCategory(category);
-    }
-
-
     @PostMapping("/addCourse")
-    public ResponseEntity<?> addCourse(@RequestBody Course course) {
+    public ResponseEntity<?> addCourse(@RequestBody CreateCourseRequest request) {
         try {
-            Course savedCourse = courseService.addCourse(course);
+            Course savedCourse = courseService.addCourse(request);
             return ResponseEntity.ok(savedCourse);
         } catch (Exception e) {
             return ResponseEntity.status(HttpStatus.BAD_REQUEST).body("Error: " + e.getMessage());
         }
     }
 
-    @PutMapping("/updateInstructor/{id}")
-    public ResponseEntity<?> updateCourse(@PathVariable Long id, @RequestBody Course course) {
+    @PutMapping("/updateCourse/{id}")
+    public ResponseEntity<?> updateCourse(@PathVariable Long id, @RequestBody UpdateCourseRequest request) {
         try {
-            Course updated = courseService.updateCourse(id, course);
+            Course updated = courseService.updateCourse(id, request);
             return ResponseEntity.ok(updated);
         } catch (Exception e) {
             return ResponseEntity.status(HttpStatus.BAD_REQUEST).body("Error: " + e.getMessage());
@@ -78,28 +74,9 @@ public class CourseController {
     }
 
 
-    @GetMapping("getEnrolledStudents/{courseId}")
+    @GetMapping("/getEnrolledStudents/{courseId}")
     public List<String> getEnrolledStudents(@PathVariable Long courseId) {
         return courseService.getEnrolledStudents(courseId);
     }
 
-    @PostMapping("enrollStudent/{courseId}/{studentId}")
-    public ResponseEntity<?> enrollStudent(@PathVariable Long courseId, @PathVariable Long studentId) {
-        try {
-            courseService.enrollStudent(courseId, studentId);
-            return ResponseEntity.ok("Student enrolled successfully.");
-        } catch (Exception e) {
-            return ResponseEntity.status(HttpStatus.BAD_REQUEST).body("Error: " + e.getMessage());
-        }
-    }
-
-    @DeleteMapping("unrollStudent/{courseId}/{studentId}")
-    public ResponseEntity<?> unrollStudent(@PathVariable Long courseId, @PathVariable Long studentId) {
-        try {
-            courseService.unrollStudent(courseId, studentId);
-            return ResponseEntity.ok("Student unrolled successfully.");
-        } catch (Exception e) {
-            return ResponseEntity.status(HttpStatus.BAD_REQUEST).body("Error: " + e.getMessage());
-        }
-    }
 }

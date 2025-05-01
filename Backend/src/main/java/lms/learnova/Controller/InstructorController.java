@@ -26,13 +26,13 @@ public class InstructorController {
         return instructorService.getInstructors();
     }
 
-    @GetMapping("/SearchInstructor/{id}")
+    @GetMapping("/searchInstructor/{id}")
     public Instructor getInstructorById(@PathVariable Long id) {
         return instructorService.getInstructorById(id);
     }
 
 
-    @PostMapping("/addInstrctor")
+    @PostMapping("/addInstructor")
     public ResponseEntity<?> addInstructor(@RequestBody Instructor instructor) {
         try {
             Instructor savedInstructor = instructorService.addInstructor(instructor);

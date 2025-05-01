@@ -1,6 +1,9 @@
 package lms.learnova.Service;
 
+import lms.learnova.DTOs.CreateCourseRequest;
+import lms.learnova.DTOs.UpdateCourseRequest;
 import lms.learnova.Model.Course;
+import lms.learnova.Model.Instructor;
 import lms.learnova.Repository.CourseRepo;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
@@ -18,11 +21,7 @@ public class CourseService {
     }
 
     public List<Course> getAllCourses() {
-        try {
-            return courseRepository.findAll();
-        } catch (Exception e) {
-            throw new RuntimeException("Error fetching courses: " + e.getMessage());
-        }
+      return courseRepository.findAll();
     }
 
     public Course getCourseById(Long id) {
@@ -30,9 +29,23 @@ public class CourseService {
                 .orElseThrow(() -> new RuntimeException("Course with ID " + id + " not found"));
     }
 
-    public Course addCourse(Course course) {
+    @Autowired
+    private InstructorService instructorService;
+    public Course addCourse(CreateCourseRequest request) {
+        Instructor instructor = instructorService.getInstructorById(request.getInstructorId());
+        if (instructor == null) {
+            throw new RuntimeException("Instructor with ID " + request.getInstructorId() + " not found");
+        }
+
+        Course course = new Course();
+        course.setTitle(request.getTitle());
+        course.setDescription(request.getDescription());
+        course.setCategory(request.getCategory());
+        course.setInstructor(instructor);
+
         return courseRepository.save(course);
     }
+
 
     public void deleteCourse(Long id) {
         courseRepository.deleteById(id);
@@ -43,36 +56,24 @@ public class CourseService {
         return courseRepository.findByTitle(title);
     }
 
-    public List<Course> searchCourseByCategory(String category) {
-        return courseRepository.findByCategory(category);
-    }
-
     public List<Course> getCoursesByInstructor(Long instructorId) {
         return courseRepository.findByInstructorId(instructorId);
     }
 
-    public List<String> getEnrolledStudents(Long courseId) {
-        return courseRepository.findEnrolledStudentsByCourseId(courseId);
-    }
+    public Course updateCourse(Long courseId, UpdateCourseRequest request) {
+        Course existingCourse = courseRepository.findById(courseId)
+                .orElseThrow(() -> new RuntimeException("Course with ID " + courseId + " not found"));
 
-    public void enrollStudent(Long courseId, Long studentId) {
-        courseRepository.enrollStudent(courseId, studentId);
-    }
+        existingCourse.setTitle(request.getTitle());
+        existingCourse.setDescription(request.getDescription());
+        existingCourse.setCategory(request.getCategory());
 
-    public void unrollStudent(Long courseId, Long studentId) {
-        courseRepository.unrollStudent(courseId, studentId);
-    }
-
-    public Course updateCourse(long id, Course course) {
-        Course existingCourse = courseRepository.findById(id)
-                .orElseThrow(() -> new RuntimeException("Course with ID " + id + " not found"));
-
-        existingCourse.setTitle(course.getTitle());
-        existingCourse.setDescription(course.getDescription());
-        existingCourse.setCategory(course.getCategory());
-        existingCourse.setInstructor(course.getInstructor());
-        existingCourse.setEnrolledStudents(course.getEnrolledStudents());
+        if (request.getInstructorId() != null) {
+            Instructor instructor = instructorService.getInstructorById(request.getInstructorId());
+            existingCourse.setInstructor(instructor);
+        }
 
         return courseRepository.save(existingCourse);
     }
+
 }

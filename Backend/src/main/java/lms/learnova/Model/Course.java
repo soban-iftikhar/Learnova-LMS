@@ -1,5 +1,7 @@
 package lms.learnova.Model;
 
+import com.fasterxml.jackson.annotation.JsonBackReference;
+import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 import jakarta.persistence.*;
 import java.util.List;
 import java.util.Objects;
@@ -13,10 +15,10 @@ import lombok.*;
 @AllArgsConstructor
 public class Course {
 
-@Id
-    @GeneratedValue(strategy = GenerationType.AUTO)
+    @Id
+    @GeneratedValue(strategy = GenerationType.IDENTITY)  // Changed from AUTO to IDENTITY
     @Column(name = "course_id")
-    private int id;
+    private Long courseId;  // Changed from int id to Long courseId
 
     @Column(name = "course_title", nullable = false)
     private String title;
@@ -27,10 +29,13 @@ public class Course {
     @Column(name = "course_category")
     private String category;
 
+
+    @JsonIgnoreProperties({"courses"}) // Add this annotation
     @ManyToOne
     @JoinColumn(name = "instructor_id", nullable = false)
     private Instructor instructor;
 
+    @JsonBackReference // Add this annotation
     @ManyToMany
     @JoinTable(
             name = "course_enrollments",
@@ -39,25 +44,24 @@ public class Course {
     )
     private List<Student> enrolledStudents;
 
+
     @Override
     public String toString() {
         return "Course{" +
-                "id=" + id +
+                "courseId=" + courseId +
                 ", title='" + title + '\'' +
                 ", description='" + description + '\'' +
                 ", category='" + category + '\'' +
                 ", instructor=" + (instructor != null ? instructor.getId() : null) +
-                ", enrolledStudents=" + (enrolledStudents != null ? enrolledStudents.size() : 0) +
                 '}';
     }
-
 
     @Override
     public boolean equals(Object o) {
         if (this == o) return true;
         if (!(o instanceof Course)) return false;
         Course course = (Course) o;
-        return id == course.id &&
+        return Objects.equals(courseId, course.courseId) &&
                 Objects.equals(title, course.title) &&
                 Objects.equals(description, course.description) &&
                 Objects.equals(category, course.category);
@@ -65,6 +69,6 @@ public class Course {
 
     @Override
     public int hashCode() {
-        return Objects.hash(id, title, description, category);
+        return Objects.hash(courseId, title, description, category);
     }
 }

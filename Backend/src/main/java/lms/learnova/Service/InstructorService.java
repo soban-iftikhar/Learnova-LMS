@@ -46,4 +46,19 @@ public class InstructorService {
                     existingInstructor.setJoiningDate(instructor.getJoiningDate());
                     return instructorRepo.save(existingInstructor);
     }
+
+    public boolean login(String email, String password) {
+        Instructor instructor = instructorRepo.findByEmail(email);
+        if (instructor != null) {
+            return instructor.getPassword().equals(password);
+        }
+        return false;
+    }
+
+    public Instructor signup(Instructor instructor) {
+        if(instructorRepo.findByEmail(instructor.getEmail())!= null){
+            throw new RuntimeException("Email already exists");
+        }
+        return instructorRepo.save(instructor);
+    }
 }
