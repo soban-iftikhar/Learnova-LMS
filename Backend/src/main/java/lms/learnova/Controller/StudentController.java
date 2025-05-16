@@ -30,7 +30,7 @@ public class StudentController {
         return studentService.getStudentById(id);
     }
 
-    @PostMapping("/addStudent")
+    @PostMapping("/registerStudent")
     public ResponseEntity<?> addStudent(@RequestBody Student student) {
         try {
             Student savedStudent = studentService.addStudent(student);

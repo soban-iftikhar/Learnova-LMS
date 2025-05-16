@@ -3,12 +3,14 @@ package lms.learnova.Service;
 import lms.learnova.Model.Student;
 import lms.learnova.Repository.StudentRepo;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
 import org.springframework.stereotype.Service;
 
 import java.util.List;
 
 @Service
 public class StudentService {
+    private BCryptPasswordEncoder bCryptPasswordEncoder = new BCryptPasswordEncoder(12);
 
     private final StudentRepo studentRepo;
     @Autowired
@@ -22,6 +24,7 @@ public class StudentService {
     }
 
     public Student addStudent(Student student) {
+        student.setPassword(bCryptPasswordEncoder.encode(student.getPassword()));
         return studentRepo.save(student);
     }
 
@@ -40,24 +43,16 @@ public class StudentService {
 
         existingStudent.setName(student.getName());
         existingStudent.setEmail(student.getEmail());
-        existingStudent.setPassword(student.getPassword());
+
+        if (!bCryptPasswordEncoder.matches(student.getPassword(), existingStudent.getPassword())) {
+            existingStudent.setPassword(bCryptPasswordEncoder.encode(student.getPassword()));
+        }
+
         existingStudent.setRegistrationNumber(student.getRegistrationNumber());
         existingStudent.setDegreeProgram(student.getDegreeProgram());
+
         return studentRepo.save(existingStudent);
     }
 
-    public boolean login(String email, String password) {
-        Student student = studentRepo.findByEmail(email);
-        if (student != null) {
-            return student.getPassword().equals(password);
-        }
-        return false;
-    }
 
-    public Student signup(Student student) {
-        if (studentRepo.findByEmail(student.getEmail()) != null) {
-            throw new RuntimeException("Email already exists");
-        }
-        return studentRepo.save(student);
-    }
 }

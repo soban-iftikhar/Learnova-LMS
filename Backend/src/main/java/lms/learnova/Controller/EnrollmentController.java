@@ -13,7 +13,7 @@ import org.springframework.web.bind.annotation.*;
 import java.util.List;
 
 @RestController
-@RequestMapping("/enrollments")
+@RequestMapping("/enrollment")
 public class EnrollmentController {
     private final EnrollmentService enrollmentService;
     private final StudentService studentService;
@@ -33,14 +33,16 @@ public class EnrollmentController {
                 studentService.getStudentById(dto.getStudentId()),
                 courseService.getCourseById(dto.getCourseId())
         );
-        enrollment.setActive(dto.isActive());
-        enrollment.setEnrollmentDate(dto.getEnrollmentDate());
 
+        enrollment.setActive(dto.isActive());
+        if (dto.getEnrollmentDate() != null) {
+            enrollment.setEnrollmentDate(dto.getEnrollmentDate());
+        }
         return ResponseEntity.ok(enrollmentService.save(enrollment));
     }
 
-    @DeleteMapping("/students/{studentId}/courses/{courseId}")
-    public ResponseEntity<Void> unenroll(
+    @DeleteMapping("unroll/{studentId}/{courseId}")
+    public ResponseEntity<Void> unroll(
             @PathVariable Long studentId,
             @PathVariable Long courseId
     ) {

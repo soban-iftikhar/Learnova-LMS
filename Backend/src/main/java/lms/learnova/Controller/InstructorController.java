@@ -32,7 +32,7 @@ public class InstructorController {
     }
 
 
-    @PostMapping("/addInstructor")
+    @PostMapping("/registerInstructor")
     public ResponseEntity<?> addInstructor(@RequestBody Instructor instructor) {
         try {
             Instructor savedInstructor = instructorService.addInstructor(instructor);
