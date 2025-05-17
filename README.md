@@ -1,6 +1,6 @@
 # Learnova 🎓
 
-Learnova is a lightweight and secure **Learning Management System (LMS)** designed for students and instructors to manage courses efficiently. Built with **Spring Boot**, **Spring Security** and **JWT Authentication**, this backend project provides RESTful APIs for core LMS functionalities like user registration, login, and course management.
+Learnova is a lightweight and secure **Learning Management System (LMS)** designed for students and instructors to manage courses efficiently. Built with **Spring Boot**, **Spring Security** and **JWT Authentication**, this backend project provides RESTful APIs for core LMS functionalities like user registration, login and course management.
 
 ---
 
