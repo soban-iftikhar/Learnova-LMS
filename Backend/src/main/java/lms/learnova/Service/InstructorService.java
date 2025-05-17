@@ -3,6 +3,9 @@ package lms.learnova.Service;
 import lms.learnova.Model.Instructor;
 import lms.learnova.Repository.InstructorRepo;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.security.authentication.AuthenticationManager;
+import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
+import org.springframework.security.core.Authentication;
 import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
 import org.springframework.stereotype.Service;
 
@@ -11,6 +14,10 @@ import java.util.List;
 @Service
 public class InstructorService {
 
+    @Autowired
+    private JWTService jwtService;
+    @Autowired
+    private  AuthenticationManager authenticationManager;
     private final InstructorRepo instructorRepo;
     private BCryptPasswordEncoder bCryptPasswordEncoder = new BCryptPasswordEncoder(12);
 
@@ -56,4 +63,12 @@ public class InstructorService {
     }
 
 
+
+    public String verify(Instructor instructor) {
+       Authentication authentication =
+               authenticationManager.authenticate(new UsernamePasswordAuthenticationToken(instructor.getEmail(), instructor.getPassword()));
+       if (authentication.isAuthenticated())
+           return jwtService.generateToken(instructor.getEmail());
+       return "Failed";
+    }
 }

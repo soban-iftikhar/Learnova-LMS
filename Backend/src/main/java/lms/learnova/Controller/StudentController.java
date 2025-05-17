@@ -1,5 +1,6 @@
 package lms.learnova.Controller;
 
+import lms.learnova.Model.Instructor;
 import lms.learnova.Model.Student;
 import lms.learnova.Service.StudentService;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -57,6 +58,16 @@ public class StudentController {
             return ResponseEntity.ok("Student deleted successfully");
         } catch (Exception e) {
             return ResponseEntity.status(HttpStatus.BAD_REQUEST).body("Error: " + e.getMessage());
+        }
+    }
+
+    @PostMapping("/login")
+    public ResponseEntity<?> loginInstructor(@RequestBody Student student) {
+        try {
+            String loggedInStudent = studentService.verify(student);
+            return ResponseEntity.ok(loggedInStudent);
+        } catch (Exception e) {
+            return ResponseEntity.status(HttpStatus.UNAUTHORIZED).body("Error: " + e.getMessage());
         }
     }
 }

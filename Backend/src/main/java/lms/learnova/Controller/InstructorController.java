@@ -16,6 +16,7 @@ public class InstructorController {
 
     private final InstructorService instructorService;
 
+
     @Autowired
     public InstructorController(InstructorService instructorService){
         this.instructorService = instructorService;
@@ -40,6 +41,16 @@ public class InstructorController {
         }
         catch (Exception e) {
             return ResponseEntity.status(HttpStatus.BAD_REQUEST).body("Error: " + e.getMessage());
+        }
+    }
+
+    @PostMapping("/login")
+    public ResponseEntity<?> loginInstructor(@RequestBody Instructor instructor) {
+        try {
+            String loggedInInstructor = instructorService.verify(instructor);
+            return ResponseEntity.ok(loggedInInstructor);
+        } catch (Exception e) {
+            return ResponseEntity.status(HttpStatus.UNAUTHORIZED).body("Error: " + e.getMessage());
         }
     }
 
