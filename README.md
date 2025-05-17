@@ -6,8 +6,8 @@ Learnova is a lightweight and secure **Learning Management System (LMS)** design
 
 ## Tech Stack
 
-- **Java 17**
-- **Spring Boot 3**
+- **Java 21**
+- **Spring Boot 3.4**
 - **Spring Data JPA**
 - **Spring Security**
 - **JWT (JSON Web Token)**
