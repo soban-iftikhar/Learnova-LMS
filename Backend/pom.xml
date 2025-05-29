@@ -40,18 +40,24 @@
 			<scope>runtime</scope>
 		</dependency>
 
+		<!-- Spring Security Starter -->
 		<dependency>
 			<groupId>org.springframework.boot</groupId>
 			<artifactId>spring-boot-starter-security</artifactId>
 		</dependency>
 
+		<!-- OAuth2 Client Starter - THIS WAS MISSING -->
+		<dependency>
+			<groupId>org.springframework.boot</groupId>
+			<artifactId>spring-boot-starter-oauth2-client</artifactId>
+		</dependency>
 
+		<!-- JWT Dependencies -->
 		<dependency>
 			<groupId>io.jsonwebtoken</groupId>
 			<artifactId>jjwt-api</artifactId>
 			<version>0.12.6</version>
 		</dependency>
-
 
 		<dependency>
 			<groupId>io.jsonwebtoken</groupId>
@@ -60,7 +66,6 @@
 			<scope>runtime</scope>
 		</dependency>
 
-
 		<dependency>
 			<groupId>io.jsonwebtoken</groupId>
 			<artifactId>jjwt-jackson</artifactId>
@@ -68,13 +73,13 @@
 			<scope>runtime</scope>
 		</dependency>
 
+		<!-- Lombok -->
 		<dependency>
 			<groupId>org.projectlombok</groupId>
 			<artifactId>lombok</artifactId>
 			<version>1.18.30</version>
 			<scope>provided</scope>
 		</dependency>
-
 
 		<!-- Spring Boot Test Starter -->
 		<dependency>
@@ -98,7 +103,6 @@
 							<version>1.18.30</version>
 						</path>
 					</annotationProcessorPaths>
-
 				</configuration>
 			</plugin>
 
