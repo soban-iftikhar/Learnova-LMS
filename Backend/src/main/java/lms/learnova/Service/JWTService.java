@@ -2,16 +2,15 @@ package lms.learnova.Service;
 
 import io.jsonwebtoken.Claims;
 import io.jsonwebtoken.Jwts;
+import io.jsonwebtoken.JwtException;
 import io.jsonwebtoken.io.Decoders;
 import io.jsonwebtoken.security.Keys;
+import lms.learnova.exception.UnauthorizedException;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.security.core.userdetails.UserDetails;
 import org.springframework.stereotype.Service;
 
-import javax.crypto.KeyGenerator;
 import javax.crypto.SecretKey;
-import java.security.Key;
-import java.security.NoSuchAlgorithmException;
-import java.util.Base64;
 import java.util.Date;
 import java.util.HashMap;
 import java.util.Map;
@@ -19,17 +18,15 @@ import java.util.function.Function;
 
 @Service
 public class JWTService {
-    private final String secretKey;
+    private final SecretKey secretKey;
+    private final long jwtExpirationMs;
 
-    public JWTService() {
-        KeyGenerator keyGenerator;
-        try {
-            keyGenerator = KeyGenerator.getInstance("HmacSHA256");
-            SecretKey sk = keyGenerator.generateKey();
-            secretKey = Base64.getEncoder().encodeToString(sk.getEncoded());
-        } catch (NoSuchAlgorithmException e) {
-            throw new RuntimeException(e);
-        }
+    public JWTService(
+            @Value("${app.jwt.secret}") String secret,
+            @Value("${app.jwt.expiration-ms}") long jwtExpirationMs
+    ) {
+        this.secretKey = Keys.hmacShaKeyFor(Decoders.BASE64.decode(secret));
+        this.jwtExpirationMs = jwtExpirationMs;
     }
 
     public String generateToken(String email) {
@@ -42,14 +39,9 @@ public class JWTService {
                 .claims(claims)
                 .subject(subject)
                 .issuedAt(new Date(System.currentTimeMillis()))
-                .expiration(new Date(System.currentTimeMillis() + 1000 * 60 * 60 * 10)) // 10 hours
-                .signWith(getKey())
+                .expiration(new Date(System.currentTimeMillis() + jwtExpirationMs))
+                .signWith(secretKey)
                 .compact();
-    }
-
-    private Key getKey() {
-        byte[] keyBytes = Decoders.BASE64.decode(secretKey);
-        return Keys.hmacShaKeyFor(keyBytes);
     }
 
     public String extractUsername(String token) {
@@ -62,11 +54,15 @@ public class JWTService {
     }
 
     private Claims extractAllClaims(String token) {
-        return Jwts.parser()
-                .setSigningKey(getKey())
-                .build()
-                .parseClaimsJws(token)
-                .getBody();
+        try {
+            return Jwts.parser()
+                    .verifyWith(secretKey)
+                    .build()
+                    .parseSignedClaims(token)
+                    .getPayload();
+        } catch (JwtException | IllegalArgumentException exception) {
+            throw new UnauthorizedException("Invalid authentication token");
+        }
     }
 
     public boolean validateToken(String token, UserDetails userDetails) {

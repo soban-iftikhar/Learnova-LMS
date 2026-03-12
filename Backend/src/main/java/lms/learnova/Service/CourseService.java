@@ -2,10 +2,10 @@ package lms.learnova.Service;
 
 import lms.learnova.DTOs.CreateCourseRequest;
 import lms.learnova.DTOs.UpdateCourseRequest;
+import lms.learnova.exception.ResourceNotFoundException;
 import lms.learnova.Model.Course;
 import lms.learnova.Model.Instructor;
 import lms.learnova.Repository.CourseRepo;
-import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 import java.util.List;
 
@@ -14,10 +14,11 @@ public class CourseService {
 
 
     private final CourseRepo courseRepository;
+    private final InstructorService instructorService;
 
-    @Autowired
-    public CourseService(CourseRepo courseRepository) {
+    public CourseService(CourseRepo courseRepository, InstructorService instructorService) {
         this.courseRepository = courseRepository;
+        this.instructorService = instructorService;
     }
 
     public List<Course> getAllCourses() {
@@ -25,17 +26,15 @@ public class CourseService {
     }
 
     public Course getCourseById(Long id) {
+        if (id == null) {
+            throw new IllegalArgumentException("Course id is required");
+        }
         return courseRepository.findById(id)
-                .orElseThrow(() -> new RuntimeException("Course with ID " + id + " not found"));
+                .orElseThrow(() -> new ResourceNotFoundException("Course with ID " + id + " not found"));
     }
 
-    @Autowired
-    private InstructorService instructorService;
     public Course addCourse(CreateCourseRequest request) {
         Instructor instructor = instructorService.getInstructorById(request.getInstructorId());
-        if (instructor == null) {
-            throw new RuntimeException("Instructor with ID " + request.getInstructorId() + " not found");
-        }
 
         Course course = new Course();
         course.setTitle(request.getTitle());
@@ -48,17 +47,27 @@ public class CourseService {
 
 
     public void deleteCourse(Long id) {
+        if (id == null) {
+            throw new IllegalArgumentException("Course id is required");
+        }
         courseRepository.deleteById(id);
     }
 
 
     public Course searchCourseByTitle(String title) {
-        return courseRepository.findByTitle(title);
+        Course course = courseRepository.findByTitle(title);
+        if (course == null) {
+            throw new ResourceNotFoundException("Course with title '" + title + "' not found");
+        }
+        return course;
     }
 
     public Course updateCourse(Long courseId, UpdateCourseRequest request) {
+        if (courseId == null) {
+            throw new IllegalArgumentException("Course id is required");
+        }
         Course existingCourse = courseRepository.findById(courseId)
-                .orElseThrow(() -> new RuntimeException("Course with ID " + courseId + " not found"));
+                .orElseThrow(() -> new ResourceNotFoundException("Course with ID " + courseId + " not found"));
 
         existingCourse.setTitle(request.getTitle());
         existingCourse.setDescription(request.getDescription());

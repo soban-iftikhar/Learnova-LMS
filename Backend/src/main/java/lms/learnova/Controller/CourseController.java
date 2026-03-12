@@ -3,10 +3,7 @@ package lms.learnova.Controller;
 import lms.learnova.DTOs.CreateCourseRequest;
 import lms.learnova.DTOs.UpdateCourseRequest;
 import lms.learnova.Model.Course;
-import lms.learnova.Model.Instructor;
 import lms.learnova.Service.CourseService;
-import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
@@ -18,7 +15,6 @@ public class CourseController {
 
     private final CourseService courseService;
 
-    @Autowired
     public CourseController(CourseService courseService){
      this.courseService = courseService;
     }
@@ -39,33 +35,21 @@ public class CourseController {
     }
 
     @PostMapping("/addCourse")
-    public ResponseEntity<?> addCourse(@RequestBody CreateCourseRequest request) {
-        try {
-            Course savedCourse = courseService.addCourse(request);
-            return ResponseEntity.ok(savedCourse);
-        } catch (Exception e) {
-            return ResponseEntity.status(HttpStatus.BAD_REQUEST).body("Error: " + e.getMessage());
-        }
+    public ResponseEntity<Course> addCourse(@RequestBody CreateCourseRequest request) {
+        Course savedCourse = courseService.addCourse(request);
+        return ResponseEntity.ok(savedCourse);
     }
 
     @PutMapping("/updateCourse/{id}")
-    public ResponseEntity<?> updateCourse(@PathVariable Long id, @RequestBody UpdateCourseRequest request) {
-        try {
-            Course updated = courseService.updateCourse(id, request);
-            return ResponseEntity.ok(updated);
-        } catch (Exception e) {
-            return ResponseEntity.status(HttpStatus.BAD_REQUEST).body("Error: " + e.getMessage());
-        }
+    public ResponseEntity<Course> updateCourse(@PathVariable Long id, @RequestBody UpdateCourseRequest request) {
+        Course updated = courseService.updateCourse(id, request);
+        return ResponseEntity.ok(updated);
     }
 
     @DeleteMapping("/deleteCourse/{id}")
-    public ResponseEntity<?> deleteCourse(@PathVariable Long id) {
-        try {
-            courseService.deleteCourse(id);
-            return ResponseEntity.ok("Course deleted successfully");
-        } catch (Exception e) {
-            return ResponseEntity.status(HttpStatus.BAD_REQUEST).body("Error: " + e.getMessage());
-        }
+    public ResponseEntity<String> deleteCourse(@PathVariable Long id) {
+        courseService.deleteCourse(id);
+        return ResponseEntity.ok("Course deleted successfully");
     }
 
 }

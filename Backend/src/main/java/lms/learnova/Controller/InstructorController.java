@@ -1,10 +1,7 @@
 package lms.learnova.Controller;
 
-import lms.learnova.Model.Course;
 import lms.learnova.Model.Instructor;
 import lms.learnova.Service.InstructorService;
-import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
@@ -17,7 +14,6 @@ public class InstructorController {
     private final InstructorService instructorService;
 
 
-    @Autowired
     public InstructorController(InstructorService instructorService){
         this.instructorService = instructorService;
     }
@@ -34,47 +30,28 @@ public class InstructorController {
 
 
     @PostMapping("/registerInstructor")
-    public ResponseEntity<?> addInstructor(@RequestBody Instructor instructor) {
-        try {
-            Instructor savedInstructor = instructorService.addInstructor(instructor);
-            return ResponseEntity.ok(savedInstructor);
-        }
-        catch (Exception e) {
-            return ResponseEntity.status(HttpStatus.BAD_REQUEST).body("Error: " + e.getMessage());
-        }
+    public ResponseEntity<Instructor> addInstructor(@RequestBody Instructor instructor) {
+        Instructor savedInstructor = instructorService.addInstructor(instructor);
+        return ResponseEntity.ok(savedInstructor);
     }
 
     @PostMapping("/login")
-    public ResponseEntity<?> loginInstructor(@RequestBody Instructor instructor) {
-        try {
-            String loggedInInstructor = instructorService.verify(instructor);
-            return ResponseEntity.ok(loggedInInstructor);
-        } catch (Exception e) {
-            return ResponseEntity.status(HttpStatus.UNAUTHORIZED).body("Error: " + e.getMessage());
-        }
+    public ResponseEntity<String> loginInstructor(@RequestBody Instructor instructor) {
+        String loggedInInstructor = instructorService.verify(instructor);
+        return ResponseEntity.ok(loggedInInstructor);
     }
 
     @PutMapping("/updateInstructor/{id}")
-    public ResponseEntity<?> updateInstructor(@PathVariable Long id, @RequestBody Instructor instructor) {
-        try {
-            Instructor updated = instructorService.updateInstructor(id, instructor);
-            return ResponseEntity.ok(updated);
-        } catch (Exception e) {
-            return ResponseEntity.status(HttpStatus.BAD_REQUEST).body("Error: " + e.getMessage());
-        }
+    public ResponseEntity<Instructor> updateInstructor(@PathVariable Long id, @RequestBody Instructor instructor) {
+        Instructor updated = instructorService.updateInstructor(id, instructor);
+        return ResponseEntity.ok(updated);
     }
 
 
     @DeleteMapping("/deleteInstructor/{id}")
-    public ResponseEntity<?> deleteInstructor(@PathVariable Long id) {
-        try {
-            instructorService.deleteInstructor(id);
-            return ResponseEntity.ok("Instructor deleted successfully");
-        }
-        catch (Exception e){
-        return ResponseEntity.status(HttpStatus.BAD_REQUEST).body("Error" + e.getMessage());
-        }
-
+    public ResponseEntity<String> deleteInstructor(@PathVariable Long id) {
+        instructorService.deleteInstructor(id);
+        return ResponseEntity.ok("Instructor deleted successfully");
     }
 
 }

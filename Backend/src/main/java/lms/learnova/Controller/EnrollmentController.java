@@ -3,10 +3,7 @@ package lms.learnova.Controller;
 
 import lms.learnova.DTOs.EnrollmentDTO;
 import lms.learnova.Model.Enrollment;
-import lms.learnova.Service.CourseService;
 import lms.learnova.Service.EnrollmentService;
-import lms.learnova.Service.StudentService;
-import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
@@ -16,32 +13,18 @@ import java.util.List;
 @RequestMapping("/enrollment")
 public class EnrollmentController {
     private final EnrollmentService enrollmentService;
-    private final StudentService studentService;
-    private final CourseService courseService;
 
-    @Autowired
-    public EnrollmentController(StudentService studentService, CourseService courseService, EnrollmentService enrollmentService) {
-        this.studentService = studentService;
-        this.courseService = courseService;
+    public EnrollmentController(EnrollmentService enrollmentService) {
         this.enrollmentService = enrollmentService;
     }
 
 
     @PostMapping("/enroll")
     public ResponseEntity<Enrollment> enrollStudent(@RequestBody EnrollmentDTO dto) {
-        Enrollment enrollment = new Enrollment(
-                studentService.getStudentById(dto.getStudentId()),
-                courseService.getCourseById(dto.getCourseId())
-        );
-
-        enrollment.setActive(dto.isActive());
-        if (dto.getEnrollmentDate() != null) {
-            enrollment.setEnrollmentDate(dto.getEnrollmentDate());
-        }
-        return ResponseEntity.ok(enrollmentService.save(enrollment));
+        return ResponseEntity.ok(enrollmentService.enrollStudent(dto));
     }
 
-    @DeleteMapping("unroll/{studentId}/{courseId}")
+    @DeleteMapping({"/unroll/{studentId}/{courseId}", "/unenroll/{studentId}/{courseId}"})
     public ResponseEntity<Void> unroll(
             @PathVariable Long studentId,
             @PathVariable Long courseId

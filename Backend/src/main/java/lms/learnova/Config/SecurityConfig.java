@@ -1,6 +1,5 @@
 package lms.learnova.Config;
 
-import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.security.authentication.AuthenticationManager;
@@ -21,11 +20,13 @@ import org.springframework.security.web.authentication.UsernamePasswordAuthentic
 @EnableWebSecurity
 public class SecurityConfig {
 
-    @Autowired
-    private JWTFilter jwtFilter;
+    private final JWTFilter jwtFilter;
+    private final UserDetailsService userDetailsService;
 
-    @Autowired
-    private UserDetailsService userDetailsService;
+    public SecurityConfig(JWTFilter jwtFilter, UserDetailsService userDetailsService) {
+        this.jwtFilter = jwtFilter;
+        this.userDetailsService = userDetailsService;
+    }
 
     @Bean
     SecurityFilterChain securityFilterChain(HttpSecurity http) throws Exception {
