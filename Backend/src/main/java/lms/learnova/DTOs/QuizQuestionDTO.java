@@ -13,6 +13,7 @@ public class QuizQuestionDTO {
     private String optionB;
     private String optionC;
     private String optionD;
+    private String correctAnswer;
     private Integer marks;
     private Integer questionOrder;
 }

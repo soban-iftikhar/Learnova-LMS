@@ -1,22 +1,25 @@
 package lms.learnova.Service;
 
 import lms.learnova.DTOs.CourseContentDTO;
-import lms.learnova.Model.CourseContent;
-import lms.learnova.Model.PDF;
-import lms.learnova.Model.Video;
+import lms.learnova.Model.*;
 import lms.learnova.Repository.CourseContentRepo;
+import lms.learnova.Repository.CourseRepo;
 import lms.learnova.exception.ResourceNotFoundException;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 
+import java.time.LocalDateTime;
 import java.util.List;
 import java.util.stream.Collectors;
 
 @Service
 public class CourseContentService {
     private final CourseContentRepo contentRepo;
+    private final CourseRepo courseRepo;
 
-    public CourseContentService(CourseContentRepo contentRepo) {
+    public CourseContentService(CourseContentRepo contentRepo, CourseRepo courseRepo) {
         this.contentRepo = contentRepo;
+        this.courseRepo = courseRepo;
     }
 
     // Get all course content ordered by upload sequence
