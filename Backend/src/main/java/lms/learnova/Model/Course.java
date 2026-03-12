@@ -3,6 +3,7 @@ package lms.learnova.Model;
 import com.fasterxml.jackson.annotation.JsonBackReference;
 import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 import jakarta.persistence.*;
+import java.util.ArrayList;
 import java.util.List;
 import java.util.Objects;
 import lombok.*;
@@ -29,13 +30,12 @@ public class Course {
     @Column(name = "course_category")
     private String category;
 
-
-    @JsonIgnoreProperties({"courses"}) // Add this annotation
+    @JsonIgnoreProperties({"courses"})
     @ManyToOne
     @JoinColumn(name = "instructor_id", nullable = false)
     private Instructor instructor;
 
-    @JsonBackReference // Add this annotation
+    @JsonBackReference
     @ManyToMany
     @JoinTable(
             name = "course_enrollments",
@@ -44,6 +44,31 @@ public class Course {
     )
     private List<Student> enrolledStudents;
 
+    @OneToMany(mappedBy = "course", cascade = CascadeType.ALL, orphanRemoval = true)
+    private List<CourseContent> contents = new ArrayList<>();
+
+    @OneToMany(mappedBy = "course", cascade = CascadeType.ALL, orphanRemoval = true)
+    private List<Quiz> quizzes = new ArrayList<>();
+
+    @OneToMany(mappedBy = "course", cascade = CascadeType.ALL, orphanRemoval = true)
+    private List<Enrollment> enrollments = new ArrayList<>();
+
+    @Column(name = "created_at")
+    private java.time.LocalDateTime createdAt;
+
+    @Column(name = "updated_at")
+    private java.time.LocalDateTime updatedAt;
+
+    @PrePersist
+    protected void onCreate() {
+        createdAt = java.time.LocalDateTime.now();
+        updatedAt = java.time.LocalDateTime.now();
+    }
+
+    @PreUpdate
+    protected void onUpdate() {
+        updatedAt = java.time.LocalDateTime.now();
+    }
 
     @Override
     public String toString() {

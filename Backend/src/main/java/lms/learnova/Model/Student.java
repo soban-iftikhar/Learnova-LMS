@@ -26,10 +26,12 @@ public class Student extends User {
     @Column(name = "degree_program")
     private String degreeProgram;
 
-
     @JsonIgnore
     @ManyToMany(mappedBy = "enrolledStudents", fetch = FetchType.LAZY)
     private List<Course> courses = new ArrayList<>();
+
+    @OneToMany(mappedBy = "student", cascade = CascadeType.ALL, orphanRemoval = true)
+    private List<StudentAnswer> quizAnswers = new ArrayList<>();
 
     @Override
     public String toString() {

@@ -35,7 +35,9 @@ public class EnrollmentService {
     public Enrollment enrollStudent(EnrollmentDTO dto) {
         Enrollment enrollment = enrollStudent(dto.getStudentId(), dto.getCourseId());
 
-        enrollment.setActive(dto.isActive());
+        if (dto.getStatus() != null) {
+            enrollment.setStatus(dto.getStatus());
+        }
         if (dto.getEnrollmentDate() != null) {
             enrollment.setEnrollmentDate(dto.getEnrollmentDate());
         }
@@ -47,7 +49,7 @@ public class EnrollmentService {
     public void unrollStudent(Long studentId, Long courseId) {
         Enrollment enrollment = enrollmentRepo.findByStudentIdAndCourseId(studentId, courseId)
                 .orElseThrow(() -> new ResourceNotFoundException("Enrollment not found"));
-        enrollment.setActive(false);
+        enrollment.setStatus("DROPPED");
         enrollmentRepo.save(enrollment);
     }
 
@@ -63,7 +65,7 @@ public class EnrollmentService {
     public void deleteEnrollment(Long studentId, Long courseId) {
         Enrollment enrollment = enrollmentRepo.findByStudentIdAndCourseId(studentId, courseId)
                 .orElseThrow(() -> new ResourceNotFoundException("Enrollment not found"));
-        enrollment.setActive(false);
+        enrollment.setStatus("DROPPED");
         enrollmentRepo.save(enrollment);
     }
 }

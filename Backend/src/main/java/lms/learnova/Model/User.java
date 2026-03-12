@@ -2,6 +2,7 @@ package lms.learnova.Model;
 
 import jakarta.persistence.*;
 import lombok.*;
+import lms.learnova.Enum.Role;
 
 import java.util.Objects;
 
@@ -27,6 +28,13 @@ public class User {
 
     @Column(nullable = false)
     private String password;
+
+    @Enumerated(EnumType.STRING)
+    @Column(name = "role", nullable = false)
+    private Role role;
+
+    @OneToOne(mappedBy = "user", cascade = CascadeType.ALL, orphanRemoval = true, fetch = FetchType.LAZY)
+    private UserProfile profile;
 
 
     @Override

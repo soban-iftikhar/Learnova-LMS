@@ -9,9 +9,10 @@ import lombok.*;
 @Setter
 
 public class EnrollmentDTO {
+    private Long id;
     private Long studentId;
     private Long courseId;
     private LocalDate enrollmentDate;
-    private boolean active;
-
+    private String status;
+    private double attendancePercentage;
 }
