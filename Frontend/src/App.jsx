@@ -21,25 +21,71 @@ function App() {
           {/* Public Routes */}
           <Route path="/login" element={<Login />} />
 
-          {/* Protected Routes with Layout */}
+          {/* Protected Routes */}
           <Route
+            path="/dashboard"
             element={
               <ProtectedRoute>
-                <div className="flex flex-col min-h-screen bg-gray-50">
-                  <Navbar />
-                  <main className="flex-1">
-                    <Routes>
-                      <Route path="/dashboard" element={<StudentDashboard />} />
-                      <Route path="/courses" element={<StudentCourses />} />
-                      <Route path="/course/:id" element={<CourseDetail />} />
-                      <Route path="/quiz/:id" element={<Quiz />} />
-                      <Route path="/profile" element={<StudentProfile />} />
-                      <Route path="/about" element={<About />} />
-                      <Route path="/contact" element={<Contact />} />
-                    </Routes>
-                  </main>
-                </div>
+                <LayoutWrapper>
+                  <StudentDashboard />
+                </LayoutWrapper>
               </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/courses"
+            element={
+              <ProtectedRoute>
+                <LayoutWrapper>
+                  <StudentCourses />
+                </LayoutWrapper>
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/course/:id"
+            element={
+              <ProtectedRoute>
+                <LayoutWrapper>
+                  <CourseDetail />
+                </LayoutWrapper>
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/quiz/:id"
+            element={
+              <ProtectedRoute>
+                <LayoutWrapper>
+                  <Quiz />
+                </LayoutWrapper>
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/profile"
+            element={
+              <ProtectedRoute>
+                <LayoutWrapper>
+                  <StudentProfile />
+                </LayoutWrapper>
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/about"
+            element={
+              <LayoutWrapper>
+                <About />
+              </LayoutWrapper>
+            }
+          />
+          <Route
+            path="/contact"
+            element={
+              <LayoutWrapper>
+                <Contact />
+              </LayoutWrapper>
             }
           />
 
@@ -48,6 +94,18 @@ function App() {
         </Routes>
       </AuthProvider>
     </Router>
+  );
+}
+
+// Layout wrapper component
+function LayoutWrapper({ children }) {
+  return (
+    <div className="flex flex-col min-h-screen bg-gray-50">
+      <Navbar />
+      <main className="flex-1">
+        {children}
+      </main>
+    </div>
   );
 }
 

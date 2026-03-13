@@ -4,6 +4,7 @@ import lms.learnova.exception.ResourceConflictException;
 import lms.learnova.exception.ResourceNotFoundException;
 import lms.learnova.exception.UnauthorizedException;
 import lms.learnova.Model.Student;
+import lms.learnova.Enum.Role;
 import lms.learnova.Repository.StudentRepo;
 import lms.learnova.Repository.UserRepo;
 import org.springframework.security.authentication.AuthenticationManager;
@@ -45,6 +46,7 @@ public class StudentService {
 
     public Student addStudent(Student student) {
         ensureEmailIsAvailable(student.getEmail(), null);
+        student.setRole(Role.STUDENT);
         student.setPassword(passwordEncoder.encode(student.getPassword()));
         return studentRepo.save(student);
     }

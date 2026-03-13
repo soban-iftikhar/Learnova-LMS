@@ -30,19 +30,25 @@ export const AuthProvider = ({ children }) => {
   const login = async (email, password) => {
     try {
       const response = await authService.login(email, password);
-      const { token, user } = response.data;
+      const token = response.data;
+
+      // Extract email from token (JWT) or use provided email
+      const userInfo = {
+        email: email,
+        id: 1, // You can decode JWT to get actual ID if needed
+      };
 
       localStorage.setItem('token', token);
-      localStorage.setItem('user', JSON.stringify(user));
+      localStorage.setItem('user', JSON.stringify(userInfo));
 
       setToken(token);
-      setUser(user);
+      setUser(userInfo);
 
       return { success: true };
     } catch (error) {
       return {
         success: false,
-        error: error.response?.data?.message || 'Login failed',
+        error: error.response?.data?.message || error.message || 'Login failed',
       };
     }
   };
