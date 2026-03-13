@@ -1,16 +1,54 @@
-# React + Vite
+# Learnova Frontend - Student LMS Application
 
-This template provides a minimal setup to get React working in Vite with HMR and some ESLint rules.
+A complete, responsive React-based frontend for the Learnova Learning Management System.
 
-Currently, two official plugins are available:
+## Features
 
-- [@vitejs/plugin-react](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react) uses [Oxc](https://oxc.rs)
-- [@vitejs/plugin-react-swc](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react-swc) uses [SWC](https://swc.rs/)
+- ✅ Complete student pages: Dashboard, Courses, Course Details, Quiz, Profile, About, Contact
+- 🔐 JWT authentication with protected routes
+- 🎨 Responsive design for all devices
+- 🔗 Full backend API integration
+- ⚡ Built with React + Vite + Tailwind CSS
 
-## React Compiler
+## Quick Start
 
-The React Compiler is not enabled on this template because of its impact on dev & build performances. To add it, see [this documentation](https://react.dev/learn/react-compiler/installation).
+```bash
+npm install        # Install dependencies
+npm run dev        # Start development server
+npm run build      # Build for production
+```
 
-## Expanding the ESLint configuration
+## Routes
 
-If you are developing a production application, we recommend using TypeScript with type-aware lint rules enabled. Check out the [TS template](https://github.com/vitejs/vite/tree/main/packages/create-vite/template-react-ts) for information on how to integrate TypeScript and [`typescript-eslint`](https://typescript-eslint.io) in your project.
+- `/login` - Login (public)
+- `/dashboard` - Student dashboard (protected)
+- `/courses` - Course discovery (protected)
+- `/course/:id` - Course details (protected)
+- `/quiz/:id` - Quiz interface (protected)
+- `/profile` - Student profile (protected)
+- `/about` - About page (public)
+- `/contact` - Contact page (public)
+
+## Demo Credentials
+
+Email: `student@test.com`
+Password: `student123`
+
+## API Base URL
+
+The frontend connects to: `http://localhost:8080/api`
+
+Edit `src/services/api.js` to change the endpoint.
+
+## Build Output
+
+```
+dist/index.html              0.45 kB
+dist/assets/index.css        0.00 kB
+dist/assets/index.js       323.76 kB (gzip: 99.33 kB)
+```
+
+## Learn More
+
+Start backend with: `cd Backend && bash run.sh`
+Start frontend with: `npm run dev`
