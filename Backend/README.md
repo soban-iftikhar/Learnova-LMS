@@ -6,8 +6,37 @@ Spring Boot 3.4.4 REST API for Learning Management System with JWT authenticatio
 
 ### Prerequisites
 - Java 21 JDK
-- MySQL 8.0+
+- PostgreSQL 12+ (or use free cloud option)
 - Maven 3.9+
+
+### Setup
+
+**Option 1: Free Cloud PostgreSQL (Recommended)**
+1. Sign up at one of these (all have free tier):
+   - https://neon.tech/ (easiest)
+   - https://supabase.com/
+   - https://railway.app/
+   - https://render.com/
+
+2. Create a project and get:
+   - Host (e.g., `ep-cool-name.us-west-2.neon.tech`)
+   - Database name (e.g., `neondb`)
+   - Username (e.g., `neondb_owner`)
+   - Password (generated for you)
+
+**Option 2: Local PostgreSQL**
+```bash
+# Install PostgreSQL locally
+# macOS: brew install postgresql
+# Ubuntu: sudo apt-get install postgresql
+
+# Create database
+createdb learnova
+
+# Create user
+psql -c "CREATE USER learnova_user WITH PASSWORD 'your_password';"
+psql -c "ALTER ROLE learnova_user WITH CREATEDB;"
+```
 
 ### Build & Run
 
@@ -15,13 +44,14 @@ Spring Boot 3.4.4 REST API for Learning Management System with JWT authenticatio
 # Build JAR
 ./mvnw clean package -DskipTests
 
-# Run application
-export DB_URL=jdbc:mysql://your-mysql-host:3306/learnova?useSSL=true&serverTimezone=UTC
-export DB_USERNAME=learnova_user
+# Set environment variables
+export DB_URL=jdbc:postgresql://your-host:5432/learnova?sslmode=require
+export DB_USERNAME=your_username
 export DB_PASSWORD=your_password
-export JWT_SECRET=your-long-random-secret-key-min-256-bits
+export JWT_SECRET=$(openssl rand -base64 256)
 export JWT_EXPIRATION_MS=86400000
 
+# Run application
 java -Xmx2g -Xms1g -jar target/Learnova-0.0.1-SNAPSHOT.jar
 ```
 
@@ -31,10 +61,10 @@ App runs on `http://localhost:8080`
 
 | Variable | Required | Example |
 |----------|----------|---------|
-| `DB_URL` | Yes | `jdbc:mysql://localhost:3306/learnova?useSSL=true&serverTimezone=UTC` |
-| `DB_USERNAME` | Yes | `learnova_user` |
-| `DB_PASSWORD` | Yes | `secure_password` |
-| `JWT_SECRET` | Yes | `long-random-key-256-bits-or-more` |
+| `DB_URL` | Yes | `jdbc:postgresql://ep-cool-name.us-west-2.neon.tech:5432/learnova?sslmode=require` |
+| `DB_USERNAME` | Yes | `neondb_owner` |
+| `DB_PASSWORD` | Yes | `your_secure_password` |
+| `JWT_SECRET` | Yes | `your-long-random-secret-key-min-256-bits` |
 | `JWT_EXPIRATION_MS` | No | `86400000` (24 hours) |
 
 ## API Endpoints
@@ -93,6 +123,6 @@ Auto-created on first run via Hibernate DDL.
 - Spring Boot 3.4.4
 - Spring Security 6.2
 - Spring Data JPA + Hibernate 6.6.11
-- MySQL 8.0
+- PostgreSQL 12+
 - JJWT 0.12.6 (JWT)
 - Maven build
