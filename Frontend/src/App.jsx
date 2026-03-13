@@ -1,4 +1,4 @@
-import { BrowserRouter as Router, Routes, Route } from 'react-router-dom';
+import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-dom';
 import { AuthProvider } from './context/AuthContext';
 import ProtectedRoute from './components/ProtectedRoute';
 import Navbar from './components/Navbar';
@@ -17,57 +17,34 @@ function App() {
   return (
     <Router>
       <AuthProvider>
-        <Navbar />
         <Routes>
           {/* Public Routes */}
           <Route path="/login" element={<Login />} />
-          <Route path="/about" element={<About />} />
-          <Route path="/contact" element={<Contact />} />
 
-          {/* Protected Student Routes */}
+          {/* Protected Routes with Layout */}
           <Route
-            path="/dashboard"
             element={
               <ProtectedRoute>
-                <StudentDashboard />
-              </ProtectedRoute>
-            }
-          />
-          <Route
-            path="/courses"
-            element={
-              <ProtectedRoute>
-                <StudentCourses />
-              </ProtectedRoute>
-            }
-          />
-          <Route
-            path="/course/:id"
-            element={
-              <ProtectedRoute>
-                <CourseDetail />
-              </ProtectedRoute>
-            }
-          />
-          <Route
-            path="/quiz/:id"
-            element={
-              <ProtectedRoute>
-                <Quiz />
-              </ProtectedRoute>
-            }
-          />
-          <Route
-            path="/profile"
-            element={
-              <ProtectedRoute>
-                <StudentProfile />
+                <div className="flex flex-col min-h-screen bg-light">
+                  <Navbar />
+                  <main className="flex-1">
+                    <Routes>
+                      <Route path="/dashboard" element={<StudentDashboard />} />
+                      <Route path="/courses" element={<StudentCourses />} />
+                      <Route path="/course/:id" element={<CourseDetail />} />
+                      <Route path="/quiz/:id" element={<Quiz />} />
+                      <Route path="/profile" element={<StudentProfile />} />
+                      <Route path="/about" element={<About />} />
+                      <Route path="/contact" element={<Contact />} />
+                    </Routes>
+                  </main>
+                </div>
               </ProtectedRoute>
             }
           />
 
           {/* Default redirect */}
-          <Route path="/" element={<Login />} />
+          <Route path="/" element={<Navigate to="/dashboard" replace />} />
         </Routes>
       </AuthProvider>
     </Router>
