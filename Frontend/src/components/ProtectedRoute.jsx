@@ -4,12 +4,15 @@ import { useAuth } from '../context/AuthContext'
 import { PageLoader } from './common/Spinner'
 
 // Redirects to login if not authenticated
-export const ProtectedRoute = ({ children }) => {
-  const { isAuthenticated, loading } = useAuth()
+export const ProtectedRoute = ({ children, allowedRoles = [] }) => {
+  const { isAuthenticated, loading, user } = useAuth()
   const location = useLocation()
 
   if (loading) return <PageLoader />
   if (!isAuthenticated) return <Navigate to="/login" state={{ from: location }} replace />
+  if (allowedRoles.length && !allowedRoles.includes(user?.role)) {
+    return <Navigate to="/dashboard" replace />
+  }
   return children
 }
 

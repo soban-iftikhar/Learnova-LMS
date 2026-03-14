@@ -8,6 +8,8 @@ import { PageLoader } from './components/common/Spinner'
 // ─── Layouts ─────────────────────────────────────────────────────────────────
 import AppLayout    from './components/layout/AppLayout'
 import PublicLayout from './components/layout/PublicLayout'
+import TeacherLayout from './components/layout/TeacherLayout'
+import AdminLayout from './components/layout/AdminLayout'
 
 // ─── Auth pages (eager — needed immediately) ─────────────────────────────────
 import LoginPage  from './pages/LoginPage'
@@ -23,6 +25,19 @@ const SettingsPage     = lazy(() => import('./pages/SettingsPage'))
 const AboutPage        = lazy(() => import('./pages/AboutPage'))
 const ContactPage      = lazy(() => import('./pages/ContactPage'))
 const NotFoundPage     = lazy(() => import('./pages/NotFoundPage'))
+
+// ─── Teacher pages ───────────────────────────────────────────────────────────
+const TeacherDashboard = lazy(() => import('./pages/teacher/Dashboard'))
+const TeacherCourses = lazy(() => import('./pages/teacher/Courses'))
+const CreateCourse = lazy(() => import('./pages/teacher/CreateCourse'))
+const EditCourse = lazy(() => import('./pages/teacher/EditCourse'))
+const CourseAnalytics = lazy(() => import('./pages/teacher/CourseAnalytics'))
+
+// ─── Admin pages ─────────────────────────────────────────────────────────────
+const AdminDashboard = lazy(() => import('./pages/admin/Dashboard'))
+const AdminStudents = lazy(() => import('./pages/admin/Students'))
+const AdminInstructors = lazy(() => import('./pages/admin/Instructors'))
+const AdminCourses = lazy(() => import('./pages/admin/Courses'))
 
 // ─── Placeholder stubs for future routes ────────────────────────────────────
 const ComingSoon = ({ title }) => (
@@ -99,23 +114,34 @@ const App = () => (
               <Route path="/settings"    element={<SettingsPage />} />
             </Route>
 
-            {/* ── Instructor routes (placeholder — to be implemented) ──── */}
-            {/*
-            <Route element={<RoleRoute allowedRoles={['INSTRUCTOR', 'ADMIN']}><InstructorLayout /></RoleRoute>}>
-              <Route path="/instructor/dashboard" element={<InstructorDashboard />} />
-              <Route path="/instructor/courses"   element={<InstructorCourses />} />
-              ...
+            {/* ── Instructor/Teacher routes ──────────────────────────── */}
+            <Route
+              element={
+                <ProtectedRoute allowedRoles={['INSTRUCTOR', 'ADMIN']}>
+                  <TeacherLayout />
+                </ProtectedRoute>
+              }
+            >
+              <Route path="/teacher/dashboard" element={<TeacherDashboard />} />
+              <Route path="/teacher/courses" element={<TeacherCourses />} />
+              <Route path="/teacher/courses/create" element={<CreateCourse />} />
+              <Route path="/teacher/courses/:courseId/edit" element={<EditCourse />} />
+              <Route path="/teacher/courses/:courseId/analytics" element={<CourseAnalytics />} />
             </Route>
-            */}
 
-            {/* ── Admin routes (placeholder — to be implemented) ──────── */}
-            {/*
-            <Route element={<RoleRoute allowedRoles={['ADMIN']}><AdminLayout /></RoleRoute>}>
+            {/* ── Admin routes ───────────────────────────────────────── */}
+            <Route
+              element={
+                <ProtectedRoute allowedRoles={['ADMIN']}>
+                  <AdminLayout />
+                </ProtectedRoute>
+              }
+            >
               <Route path="/admin/dashboard" element={<AdminDashboard />} />
-              <Route path="/admin/users"     element={<AdminUsers />} />
-              ...
+              <Route path="/admin/students" element={<AdminStudents />} />
+              <Route path="/admin/instructors" element={<AdminInstructors />} />
+              <Route path="/admin/courses" element={<AdminCourses />} />
             </Route>
-            */}
 
             {/* ── Root redirect ────────────────────────────────────────── */}
             <Route path="/" element={<Navigate to="/dashboard" replace />} />
