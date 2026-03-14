@@ -96,7 +96,7 @@ public class QuizzesApiController {
 
         return ResponseEntity.ok(Map.of(
                 "attempt_id",   body.getOrDefault("attempt_id", 0),
-                "score",        result.getTotalScore() != null ? result.getTotalScore() : 0,
+                "score",        result.getMarksObtained() != null ? result.getMarksObtained() : 0,
                 "percentage",   result.getPercentage() != null ? result.getPercentage() : 0.0,
                 "passed",       result.getPercentage() != null && result.getPercentage() >= 70,
                 "feedback",     result.getPercentage() != null && result.getPercentage() >= 70

@@ -76,7 +76,8 @@ export const adminApi = {
   updateUserStatus: (id, status) =>
     apiClient.put(`/admin/users/${id}/status`, { status }),
 }
-
+// ─── Courses ──────────────────────────────────────────────────────────────────
+export { coursesApi } from './courses'
 // ─── Analytics ────────────────────────────────────────────────────────────────
 export const analyticsApi = {
   getEngagement: (params = {}) =>
