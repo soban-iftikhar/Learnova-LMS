@@ -18,12 +18,12 @@ import StudentSignup from './pages/StudentSignup'
 import TeacherSignup from './pages/TeacherSignup'
 
 // ─── App pages (lazy — loaded on demand) ─────────────────────────────────────
-const DashboardPage    = lazy(() => import('./pages/DashboardPage'))
-const CoursesPage      = lazy(() => import('./pages/CoursesPage'))
-const CourseDetailPage = lazy(() => import('./pages/CourseDetailPage'))
-const AssignmentsPage  = lazy(() => import('./pages/AssignmentsPage'))
-const ProgressPage     = lazy(() => import('./pages/ProgressPage'))
-const SettingsPage     = lazy(() => import('./pages/SettingsPage'))
+const DashboardPage    = lazy(() => import('./pages/student/Dashboard'))
+const CoursesPage      = lazy(() => import('./pages/student/Courses'))
+const CourseDetailPage = lazy(() => import('./pages/student/CourseDetail'))
+const AssignmentsPage  = lazy(() => import('./pages/student/Assignments'))
+const ProgressPage     = lazy(() => import('./pages/student/Progress'))
+const SettingsPage     = lazy(() => import('./pages/student/Settings'))
 const AboutPage        = lazy(() => import('./pages/AboutPage'))
 const ContactPage      = lazy(() => import('./pages/ContactPage'))
 const NotFoundPage     = lazy(() => import('./pages/NotFoundPage'))
