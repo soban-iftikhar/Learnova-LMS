@@ -1,131 +1,66 @@
-import { createContext, useState, useEffect } from 'react'
-import { jwtDecode } from 'jwt-decode'
+import React, { createContext, useContext, useState, useEffect, useCallback } from 'react'
+import { authApi } from '../api/auth'
 
-export const AuthContext = createContext(null)
+const AuthContext = createContext(null)
 
-export function AuthProvider({ children }) {
+export const useAuth = () => {
+  const ctx = useContext(AuthContext)
+  if (!ctx) throw new Error('useAuth must be used within AuthProvider')
+  return ctx
+}
+
+export const AuthProvider = ({ children }) => {
   const [user, setUser] = useState(null)
   const [loading, setLoading] = useState(true)
-  const [token, setToken] = useState(null)
   const [error, setError] = useState(null)
 
+  // On mount: load user from token
   useEffect(() => {
-    const savedToken = localStorage.getItem('authToken')
-    if (savedToken) {
-      try {
-        const decoded = jwtDecode(savedToken)
-        // Check if token is expired
-        if (decoded.exp * 1000 < Date.now()) {
-          localStorage.removeItem('authToken')
-        } else {
-          setToken(savedToken)
-          setUser({
-            id: decoded.id,
-            email: decoded.email,
-            name: decoded.name,
-            role: decoded.role,
-          })
-        }
-      } catch (error) {
-        console.error('Invalid token:', error)
-        localStorage.removeItem('authToken')
-      }
+    const token = localStorage.getItem('access_token')
+    if (token) {
+      authApi.getMe()
+        .then((res) => setUser(res.data))
+        .catch(() => {
+          localStorage.removeItem('access_token')
+          localStorage.removeItem('refresh_token')
+        })
+        .finally(() => setLoading(false))
+    } else {
+      setLoading(false)
     }
-    setLoading(false)
   }, [])
 
-  const login = async (email, password, role = 'STUDENT') => {
+  const login = useCallback(async (email, password) => {
     setError(null)
-    try {
-      const roleEndpoint = role === 'STUDENT' ? 'student' : 'instructor'
-      const endpoint = `${import.meta.env.VITE_API_BASE_URL}/${roleEndpoint}/login`
+    const res = await authApi.login(email, password)
+    const { access_token, refresh_token, user: userData } = res.data
+    localStorage.setItem('access_token', access_token)
+    localStorage.setItem('refresh_token', refresh_token)
+    setUser(userData)
+    return userData
+  }, [])
 
-      const response = await fetch(endpoint, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ email, password }),
-      })
-
-      if (!response.ok) {
-        const errorData = await response.json()
-        throw new Error(errorData.message || 'Login failed')
-      }
-
-      const tokenString = await response.text()
-      const decoded = jwtDecode(tokenString)
-
-      localStorage.setItem('authToken', tokenString)
-      setToken(tokenString)
-      setUser({
-        id: decoded.id,
-        email: decoded.email,
-        name: decoded.name,
-        role: decoded.role,
-      })
-
-      return decoded
-    } catch (err) {
-      setError(err.message)
-      throw err
-    }
-  }
-
-  const signup = async (data, role = 'STUDENT') => {
+  const register = useCallback(async (formData) => {
     setError(null)
+    const res = await authApi.register(formData)
+    return res.data
+  }, [])
+
+  const logout = useCallback(async () => {
     try {
-      const roleEndpoint = role === 'STUDENT' ? 'student/registerStudent' : 'instructor/registerInstructor'
-      const endpoint = `${import.meta.env.VITE_API_BASE_URL}/${roleEndpoint}`
-
-      const response = await fetch(endpoint, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(data),
-      })
-
-      if (!response.ok) {
-        const errorData = await response.json()
-        throw new Error(errorData.message || 'Signup failed')
-      }
-
-      const result = await response.json()
-      
-      // Auto-login after signup
-      if (result.token) {
-        const decoded = jwtDecode(result.token)
-        localStorage.setItem('authToken', result.token)
-        setToken(result.token)
-        setUser({
-          id: decoded.id,
-          email: decoded.email,
-          name: decoded.name,
-          role: decoded.role,
-        })
-      }
-
-      return result
-    } catch (err) {
-      setError(err.message)
-      throw err
-    }
-  }
-
-  const logout = () => {
-    localStorage.removeItem('authToken')
-    setToken(null)
+      await authApi.logout()
+    } catch (_) { /* silent */ }
+    localStorage.removeItem('access_token')
+    localStorage.removeItem('refresh_token')
     setUser(null)
-    setError(null)
-  }
+  }, [])
 
-  const value = {
-    user,
-    token,
-    loading,
-    error,
-    login,
-    signup,
-    logout,
-    isAuthenticated: !!user,
-  }
+  const isAuthenticated = Boolean(user)
+  const role = user?.role
 
-  return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>
+  return (
+    <AuthContext.Provider value={{ user, loading, error, login, register, logout, isAuthenticated, role }}>
+      {children}
+    </AuthContext.Provider>
+  )
 }

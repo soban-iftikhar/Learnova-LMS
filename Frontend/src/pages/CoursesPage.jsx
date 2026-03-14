@@ -1,137 +1,168 @@
-import { useEffect, useState } from 'react'
-import { useAuth } from '../hooks/useAuth'
-import { courseAPI, studentAPI } from '../services/api'
+import React, { useState } from 'react'
+import { Search, Filter, BookOpen, Grid3X3, List } from 'lucide-react'
+import { enrollmentsApi } from '../api/index'
+import { useAsync, useDebounce } from '../hooks/index'
 import CourseCard from '../components/CourseCard'
-import { Search, AlertCircle, Loader } from 'lucide-react'
+import { SectionLoader } from '../components/common/Spinner'
+import { EmptyState, ErrorState } from '../components/common/EmptyState'
+import Input from '../components/common/Input'
+import Badge from '../components/common/Badge'
 
-export default function CoursesPage() {
-  const { user } = useAuth()
-  const [courses, setCourses] = useState([])
-  const [enrolledCourseIds, setEnrolledCourseIds] = useState(new Set())
-  const [searchTerm, setSearchTerm] = useState('')
-  const [filteredCourses, setFilteredCourses] = useState([])
-  const [loading, setLoading] = useState(true)
-  const [enrolling, setEnrolling] = useState(null)
-  const [error, setError] = useState(null)
+const TABS = [
+  { label: 'All', value: '' },
+  { label: 'In Progress', value: 'ACTIVE' },
+  { label: 'Completed', value: 'COMPLETED' },
+]
 
-  useEffect(() => {
-    const fetchData = async () => {
-      try {
-        setLoading(true)
-        setError(null)
+const CoursesPage = () => {
+  const [search, setSearch] = useState('')
+  const [status, setStatus] = useState('')
+  const [view, setView] = useState('grid')
+  const debouncedSearch = useDebounce(search, 300)
 
-        // Fetch all courses
-        const allCourses = await courseAPI.getAll()
-        setCourses(allCourses || [])
-        setFilteredCourses(allCourses || [])
+  const { data, loading, error, refetch } = useAsync(
+    () => enrollmentsApi.getMyCourses({ status: status || undefined }),
+    [status]
+  )
 
-        // Fetch enrolled courses
-        const enrollments = await studentAPI.getEnrollments(user.id)
-        const enrolledIds = new Set(enrollments.map(e => e.courseId))
-        setEnrolledCourseIds(enrolledIds)
-      } catch (err) {
-        console.error('Error fetching courses:', err)
-        setError('Failed to load courses')
-      } finally {
-        setLoading(false)
-      }
-    }
+  const enrollments = data?.content || []
 
-    if (user?.id) {
-      fetchData()
-    }
-  }, [user])
-
-  // Search handler
-  useEffect(() => {
-    if (searchTerm.trim()) {
-      const filtered = courses.filter(course =>
-        course.title.toLowerCase().includes(searchTerm.toLowerCase()) ||
-        course.description.toLowerCase().includes(searchTerm.toLowerCase()) ||
-        course.category.toLowerCase().includes(searchTerm.toLowerCase())
+  const filtered = debouncedSearch
+    ? enrollments.filter(e =>
+        e.course?.title?.toLowerCase().includes(debouncedSearch.toLowerCase()) ||
+        e.course?.instructor?.toLowerCase().includes(debouncedSearch.toLowerCase())
       )
-      setFilteredCourses(filtered)
-    } else {
-      setFilteredCourses(courses)
-    }
-  }, [searchTerm, courses])
-
-  const handleEnroll = async (courseId) => {
-    try {
-      setEnrolling(courseId)
-      await studentAPI.enrollCourse(user.id, courseId)
-      setEnrolledCourseIds(prev => new Set([...prev, courseId]))
-    } catch (err) {
-      console.error('Error enrolling in course:', err)
-      setError('Failed to enroll in course')
-    } finally {
-      setEnrolling(null)
-    }
-  }
-
-  if (loading) {
-    return (
-      <div className="flex items-center justify-center h-screen">
-        <div className="flex flex-col items-center gap-4">
-          <Loader className="w-12 h-12 text-blue-600 animate-spin" />
-          <p className="text-gray-600">Loading courses...</p>
-        </div>
-      </div>
-    )
-  }
+    : enrollments
 
   return (
-    <div className="min-h-screen bg-gray-50">
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
-        {/* Header */}
-        <div className="mb-8">
-          <h1 className="text-4xl font-bold text-gray-900 mb-2">Explore Courses</h1>
-          <p className="text-gray-600">Find and enroll in courses to enhance your skills</p>
+    <div className="animate-fade-in space-y-6">
+      {/* Header */}
+      <div className="page-header mb-0">
+        <h1 className="page-title">My Courses</h1>
+        <p className="page-subtitle">Track your learning progress across all enrolled courses.</p>
+      </div>
+
+      {/* Tabs + Search */}
+      <div className="flex flex-col sm:flex-row gap-4 items-start sm:items-center justify-between">
+        {/* Tabs */}
+        <div className="flex items-center gap-1 bg-surface-muted rounded-xl p-1">
+          {TABS.map(tab => (
+            <button
+              key={tab.value}
+              onClick={() => setStatus(tab.value)}
+              className={`px-4 py-2 text-sm font-medium rounded-lg transition-all duration-150
+                ${status === tab.value
+                  ? 'bg-white text-ink shadow-sm'
+                  : 'text-gray-400 hover:text-ink'
+                }`}
+            >
+              {tab.label}
+            </button>
+          ))}
         </div>
 
-        {/* Error Message */}
-        {error && (
-          <div className="mb-6 p-4 bg-red-50 border border-red-200 rounded-lg flex gap-3">
-            <AlertCircle className="w-5 h-5 text-red-600 flex-shrink-0" />
-            <p className="text-red-700">{error}</p>
-          </div>
-        )}
-
-        {/* Search Bar */}
-        <div className="mb-8">
-          <div className="relative">
-            <Search className="absolute left-4 top-3 w-5 h-5 text-gray-400" />
-            <input
-              type="text"
-              placeholder="Search courses by title, description, or category..."
-              value={searchTerm}
-              onChange={(e) => setSearchTerm(e.target.value)}
-              className="w-full pl-12 pr-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-600"
+        <div className="flex items-center gap-2 w-full sm:w-auto">
+          <div className="flex-1 sm:w-64">
+            <Input
+              placeholder="Search courses…"
+              leftIcon={<Search size={16} />}
+              value={search}
+              onChange={e => setSearch(e.target.value)}
+              className="py-2"
             />
           </div>
-        </div>
 
-        {/* Courses Grid */}
-        {filteredCourses.length > 0 ? (
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-            {filteredCourses.map(course => (
-              <CourseCard
-                key={course.id}
-                course={course}
-                isEnrolled={enrolledCourseIds.has(course.id)}
-                onEnroll={handleEnroll}
-              />
-            ))}
+          {/* View toggle */}
+          <div className="flex items-center bg-surface-muted rounded-xl p-1 gap-0.5">
+            <button
+              onClick={() => setView('grid')}
+              className={`p-2 rounded-lg transition-colors ${view === 'grid' ? 'bg-white shadow-sm text-brand-500' : 'text-gray-400 hover:text-ink'}`}
+            >
+              <Grid3X3 size={16} />
+            </button>
+            <button
+              onClick={() => setView('list')}
+              className={`p-2 rounded-lg transition-colors ${view === 'list' ? 'bg-white shadow-sm text-brand-500' : 'text-gray-400 hover:text-ink'}`}
+            >
+              <List size={16} />
+            </button>
           </div>
-        ) : (
-          <div className="bg-white rounded-lg p-12 text-center">
-            <Search className="w-16 h-16 text-gray-300 mx-auto mb-4" />
-            <p className="text-gray-600 text-lg">
-              {searchTerm ? 'No courses found matching your search' : 'No courses available'}
-            </p>
-          </div>
-        )}
+        </div>
       </div>
+
+      {/* Summary */}
+      {!loading && !error && (
+        <div className="flex items-center gap-2">
+          <Badge variant="default">{filtered.length} course{filtered.length !== 1 ? 's' : ''}</Badge>
+          {status === 'ACTIVE' && <Badge variant="info" dot>In Progress</Badge>}
+          {status === 'COMPLETED' && <Badge variant="success" dot>Completed</Badge>}
+        </div>
+      )}
+
+      {/* Content */}
+      {loading ? (
+        <div className={view === 'grid'
+          ? 'grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-5'
+          : 'space-y-3'
+        }>
+          {[...Array(6)].map((_, i) => (
+            <div key={i} className={`bg-white rounded-2xl animate-pulse ${view === 'grid' ? 'h-80' : 'h-24'}`} />
+          ))}
+        </div>
+      ) : error ? (
+        <ErrorState message={error} onRetry={refetch} />
+      ) : !filtered.length ? (
+        <EmptyState
+          icon={BookOpen}
+          title={search ? 'No matching courses' : 'No courses found'}
+          description={
+            search
+              ? `No results for "${search}". Try a different search.`
+              : status
+              ? `You have no ${status.toLowerCase()} courses.`
+              : 'You haven\'t enrolled in any courses yet.'
+          }
+        />
+      ) : view === 'grid' ? (
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-5">
+          {filtered.map((enrollment) => (
+            <CourseCard
+              key={enrollment.id}
+              course={enrollment.course}
+              progress={enrollment.progress}
+              enrollmentId={enrollment.id}
+            />
+          ))}
+        </div>
+      ) : (
+        // List view
+        <div className="space-y-3">
+          {filtered.map((enrollment) => (
+            <div key={enrollment.id} className="card p-4 flex items-center gap-4 hover:shadow-card-hover transition-all duration-200">
+              <div className="w-16 h-16 rounded-xl bg-brand-50 flex items-center justify-center flex-shrink-0">
+                <BookOpen size={24} className="text-brand-500" />
+              </div>
+              <div className="flex-1 min-w-0">
+                <h3 className="font-semibold text-ink text-sm truncate">{enrollment.course?.title}</h3>
+                <p className="text-xs text-gray-400 mt-0.5">{enrollment.course?.instructor}</p>
+                <div className="mt-2 flex items-center gap-3">
+                  <div className="flex-1 max-w-xs">
+                    <div className="w-full bg-gray-100 rounded-full h-1.5">
+                      <div className="bg-brand-500 h-1.5 rounded-full transition-all" style={{ width: `${enrollment.progress}%` }} />
+                    </div>
+                  </div>
+                  <span className="text-xs text-gray-400 flex-shrink-0">{enrollment.progress}%</span>
+                </div>
+              </div>
+              <Badge variant={enrollment.status === 'COMPLETED' ? 'success' : 'info'} dot>
+                {enrollment.status === 'COMPLETED' ? 'Completed' : 'In Progress'}
+              </Badge>
+            </div>
+          ))}
+        </div>
+      )}
     </div>
   )
 }
+
+export default CoursesPage

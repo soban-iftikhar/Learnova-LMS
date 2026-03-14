@@ -1,71 +1,133 @@
-import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-dom'
+import React, { Suspense, lazy } from 'react'
+import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom'
 import { AuthProvider } from './context/AuthContext'
-import ProtectedRoute from './routes/ProtectedRoute'
+import { ToastProvider } from './components/common/Toast'
+import { ProtectedRoute, GuestRoute } from './components/ProtectedRoute'
+import { PageLoader } from './components/common/Spinner'
 
-// Auth Pages
-import LoginPage from './pages/LoginPage'
+// ─── Layouts ─────────────────────────────────────────────────────────────────
+import AppLayout    from './components/layout/AppLayout'
+import PublicLayout from './components/layout/PublicLayout'
+
+// ─── Auth pages (eager — needed immediately) ─────────────────────────────────
+import LoginPage  from './pages/LoginPage'
 import SignupPage from './pages/SignupPage'
 
-// Student Pages
-import StudentDashboard from './pages/student/Dashboard'
-import StudentCourses from './pages/student/Courses'
-import CourseDetail from './pages/student/CourseDetail'
-import QuizPage from './pages/student/QuizPage'
+// ─── App pages (lazy — loaded on demand) ─────────────────────────────────────
+const DashboardPage    = lazy(() => import('./pages/DashboardPage'))
+const CoursesPage      = lazy(() => import('./pages/CoursesPage'))
+const CourseDetailPage = lazy(() => import('./pages/CourseDetailPage'))
+const AssignmentsPage  = lazy(() => import('./pages/AssignmentsPage'))
+const ProgressPage     = lazy(() => import('./pages/ProgressPage'))
+const SettingsPage     = lazy(() => import('./pages/SettingsPage'))
+const AboutPage        = lazy(() => import('./pages/AboutPage'))
+const ContactPage      = lazy(() => import('./pages/ContactPage'))
+const NotFoundPage     = lazy(() => import('./pages/NotFoundPage'))
 
-// Teacher Pages
-import TeacherDashboard from './pages/teacher/Dashboard'
-import TeacherCourses from './pages/teacher/Courses'
-import CreateCourse from './pages/teacher/CreateCourse'
-import EditCourse from './pages/teacher/EditCourse'
-import CourseAnalytics from './pages/teacher/CourseAnalytics'
+// ─── Placeholder stubs for future routes ────────────────────────────────────
+const ComingSoon = ({ title }) => (
+  <div className="flex flex-col items-center justify-center py-24 text-center">
+    <div className="w-16 h-16 rounded-2xl bg-brand-50 flex items-center justify-center mb-4">
+      <span className="text-2xl">🚧</span>
+    </div>
+    <h2 className="text-xl font-bold text-ink mb-2">{title}</h2>
+    <p className="text-gray-400 text-sm">This page is coming soon. Stay tuned!</p>
+  </div>
+)
 
-// Admin Pages
-import AdminDashboard from './pages/admin/Dashboard'
-import AdminInstructors from './pages/admin/Instructors'
-import AdminStudents from './pages/admin/Students'
-import AdminCourses from './pages/admin/Courses'
+// ─── App ────────────────────────────────────────────────────────────────────
+const App = () => (
+  <BrowserRouter>
+    <AuthProvider>
+      <ToastProvider>
+        <Suspense fallback={<PageLoader />}>
+          <Routes>
 
-// Common Pages
-import NotFoundPage from './pages/NotFoundPage'
+            {/* ── Public / Marketing routes ───────────────────────────── */}
+            <Route element={<PublicLayout />}>
+              <Route path="/about"   element={<AboutPage />} />
+              <Route path="/contact" element={<ContactPage />} />
+            </Route>
 
-function App() {
-  return (
-    <Router>
-      <AuthProvider>
-        <Routes>
-          {/* Public Routes */}
-          <Route path="/login" element={<LoginPage />} />
-          <Route path="/signup" element={<SignupPage />} />
+            {/* ── Auth routes (redirect to dashboard if logged in) ─────── */}
+            <Route
+              path="/login"
+              element={
+                <GuestRoute>
+                  <LoginPage />
+                </GuestRoute>
+              }
+            />
+            <Route
+              path="/signup"
+              element={
+                <GuestRoute>
+                  <SignupPage />
+                </GuestRoute>
+              }
+            />
 
-          {/* Protected Routes */}
-          <Route element={<ProtectedRoute />}>
-            {/* Student Routes */}
-            <Route path="/" element={<Navigate to="/student/dashboard" replace />} />
-            <Route path="/student/dashboard" element={<StudentDashboard />} />
-            <Route path="/student/courses" element={<StudentCourses />} />
-            <Route path="/student/courses/:courseId" element={<CourseDetail />} />
-            <Route path="/student/quiz/:quizId" element={<QuizPage />} />
+            {/* ── Protected student routes ─────────────────────────────── */}
+            <Route
+              element={
+                <ProtectedRoute>
+                  <AppLayout />
+                </ProtectedRoute>
+              }
+            >
+              {/* Dashboard */}
+              <Route path="/dashboard"  element={<DashboardPage />} />
 
-            {/* Teacher Routes */}
-            <Route path="/teacher/dashboard" element={<TeacherDashboard />} />
-            <Route path="/teacher/courses" element={<TeacherCourses />} />
-            <Route path="/teacher/courses/create" element={<CreateCourse />} />
-            <Route path="/teacher/courses/:courseId/edit" element={<EditCourse />} />
-            <Route path="/teacher/courses/:courseId/analytics" element={<CourseAnalytics />} />
+              {/* Courses */}
+              <Route path="/courses"     element={<CoursesPage />} />
+              <Route path="/courses/:id" element={<CourseDetailPage />} />
 
-            {/* Admin Routes */}
-            <Route path="/admin/dashboard" element={<AdminDashboard />} />
-            <Route path="/admin/instructors" element={<AdminInstructors />} />
-            <Route path="/admin/students" element={<AdminStudents />} />
-            <Route path="/admin/courses" element={<AdminCourses />} />
-          </Route>
+              {/* Assignments */}
+              <Route path="/assignments" element={<AssignmentsPage />} />
 
-          {/* 404 Route */}
-          <Route path="*" element={<NotFoundPage />} />
-        </Routes>
-      </AuthProvider>
-    </Router>
-  )
-}
+              {/* Progress & Analytics */}
+              <Route path="/progress"    element={<ProgressPage />} />
+
+              {/* Calendar stub */}
+              <Route path="/calendar"    element={<ComingSoon title="Calendar" />} />
+
+              {/* Help stub */}
+              <Route path="/help"        element={<ComingSoon title="Help Center" />} />
+
+              {/* Profile / Settings */}
+              <Route path="/profile"     element={<SettingsPage />} />
+              <Route path="/settings"    element={<SettingsPage />} />
+            </Route>
+
+            {/* ── Instructor routes (placeholder — to be implemented) ──── */}
+            {/*
+            <Route element={<RoleRoute allowedRoles={['INSTRUCTOR', 'ADMIN']}><InstructorLayout /></RoleRoute>}>
+              <Route path="/instructor/dashboard" element={<InstructorDashboard />} />
+              <Route path="/instructor/courses"   element={<InstructorCourses />} />
+              ...
+            </Route>
+            */}
+
+            {/* ── Admin routes (placeholder — to be implemented) ──────── */}
+            {/*
+            <Route element={<RoleRoute allowedRoles={['ADMIN']}><AdminLayout /></RoleRoute>}>
+              <Route path="/admin/dashboard" element={<AdminDashboard />} />
+              <Route path="/admin/users"     element={<AdminUsers />} />
+              ...
+            </Route>
+            */}
+
+            {/* ── Root redirect ────────────────────────────────────────── */}
+            <Route path="/" element={<Navigate to="/dashboard" replace />} />
+
+            {/* ── 404 ──────────────────────────────────────────────────── */}
+            <Route path="*" element={<NotFoundPage />} />
+
+          </Routes>
+        </Suspense>
+      </ToastProvider>
+    </AuthProvider>
+  </BrowserRouter>
+)
 
 export default App
