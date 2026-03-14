@@ -14,6 +14,8 @@ import AdminLayout from './components/layout/AdminLayout'
 // ─── Auth pages (eager — needed immediately) ─────────────────────────────────
 import LoginPage  from './pages/LoginPage'
 import SignupPage from './pages/SignupPage'
+import StudentSignup from './pages/StudentSignup'
+import TeacherSignup from './pages/TeacherSignup'
 
 // ─── App pages (lazy — loaded on demand) ─────────────────────────────────────
 const DashboardPage    = lazy(() => import('./pages/DashboardPage'))
@@ -78,6 +80,22 @@ const App = () => (
               element={
                 <GuestRoute>
                   <SignupPage />
+                </GuestRoute>
+              }
+            />
+            <Route
+              path="/signup/student"
+              element={
+                <GuestRoute>
+                  <StudentSignup />
+                </GuestRoute>
+              }
+            />
+            <Route
+              path="/signup/teacher"
+              element={
+                <GuestRoute>
+                  <TeacherSignup />
                 </GuestRoute>
               }
             />

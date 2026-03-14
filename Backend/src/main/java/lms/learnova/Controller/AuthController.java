@@ -60,6 +60,7 @@ public class AuthController {
             instructor.setName(req.getName());
             instructor.setEmail(req.getEmail());
             instructor.setPassword(req.getPassword());
+            instructor.setRole(Role.INSTRUCTOR);  // Explicitly set role
             Instructor saved = instructorService.addInstructor(instructor);
             return ResponseEntity.status(HttpStatus.CREATED).body(buildUserResponse(saved));
         } else {
@@ -67,6 +68,7 @@ public class AuthController {
             student.setName(req.getName());
             student.setEmail(req.getEmail());
             student.setPassword(req.getPassword());
+            student.setRole(Role.STUDENT);  // Explicitly set role
             Student saved = studentService.addStudent(student);
             return ResponseEntity.status(HttpStatus.CREATED).body(buildUserResponse(saved));
         }
