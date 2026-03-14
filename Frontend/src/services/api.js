@@ -1,84 +1,127 @@
-import axios from 'axios';
+const API_BASE = import.meta.env.VITE_API_BASE_URL
 
-const API_URL = 'http://localhost:8080';
+function getAuthHeader() {
+  const token = localStorage.getItem('authToken')
+  return token ? { Authorization: `Bearer ${token}` } : {}
+}
 
-const api = axios.create({
-  baseURL: API_URL,
-  headers: {
-    'Content-Type': 'application/json',
+// Student APIs
+export const studentAPI = {
+  getCourses: async () => {
+    const response = await fetch(`${API_BASE}/course/getAllCourses`, {
+      headers: getAuthHeader(),
+    })
+    if (!response.ok) throw new Error('Failed to fetch courses')
+    return response.json()
   },
-});
 
-// Add token to requests
-api.interceptors.request.use(
-  (config) => {
-    const token = localStorage.getItem('token');
-    if (token) {
-      config.headers.Authorization = `Bearer ${token}`;
-    }
-    return config;
+  getEnrollments: async (studentId) => {
+    const response = await fetch(`${API_BASE}/enrollment/student/${studentId}`, {
+      headers: getAuthHeader(),
+    })
+    if (!response.ok) throw new Error('Failed to fetch enrollments')
+    return response.json()
   },
-  (error) => Promise.reject(error)
-);
 
-// Auth Service
-export const authService = {
-  login: (email, password) =>
-    api.post('/student/login', { email, password }),
-  logout: () => {
-    localStorage.removeItem('token');
-    localStorage.removeItem('user');
+  enrollCourse: async (studentId, courseId) => {
+    const response = await fetch(`${API_BASE}/enrollment/enroll`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', ...getAuthHeader() },
+      body: JSON.stringify({ studentId, courseId }),
+    })
+    if (!response.ok) throw new Error('Failed to enroll')
+    return response.json()
   },
-};
 
-// Student Service
-export const studentService = {
-  getProfile: (studentId) =>
-    api.get(`/student/searchStudent/${studentId}`),
-  updateProfile: (studentId, data) =>
-    api.post(`/student/updateStudent/${studentId}`, data),
-  getEnrollments: (studentId) =>
-    api.get(`/student/getEnrollment/${studentId}`),
-  enrollCourse: (courseId) =>
-    api.post('/enrollment/enroll', { courseId }),
-  getAttendance: (studentId) =>
-    api.get(`/student/attendance/${studentId}`),
-};
+  unenrollCourse: async (studentId, courseId) => {
+    const response = await fetch(`${API_BASE}/enrollment/unroll/${studentId}/${courseId}`, {
+      method: 'DELETE',
+      headers: getAuthHeader(),
+    })
+    if (!response.ok) throw new Error('Failed to unenroll')
+    return response.text()
+  },
 
-// Course Service
-export const courseService = {
-  getAllCourses: () =>
-    api.get('/course/getCourses'),
-  searchCourses: (query) =>
-    api.get(`/course/search?q=${query}`),
-  getCourseDetails: (courseId) =>
-    api.get(`/course/${courseId}`),
-  getCourseContent: (enrollmentId) =>
-    api.get(`/enrollment/content/${enrollmentId}`),
-  getEnrollmentDetails: (enrollmentId) =>
-    api.get(`/enrollment/getEnrollment/${enrollmentId}`),
-  getEnrollmentContent: (enrollmentId) =>
-    api.get(`/enrollment/content/${enrollmentId}`),
-  getCourseQuizzes: (courseId) =>
-    api.get(`/course/${courseId}/quizzes`),
-  getQuizDetails: (quizId) =>
-    api.get(`/quiz/${quizId}`),
-  getQuizQuestions: (quizId) =>
-    api.get(`/quiz/${quizId}/questions`),
-  submitQuiz: (quizId, answers) =>
-    api.post(`/quiz/${quizId}/submit`, answers),
-};
+  getProfile: async (studentId) => {
+    const response = await fetch(`${API_BASE}/student/searchStudent/${studentId}`, {
+      headers: getAuthHeader(),
+    })
+    if (!response.ok) throw new Error('Failed to fetch profile')
+    return response.json()
+  },
+}
 
-// Quiz Service
-export const quizService = {
-  getQuiz: (quizId) =>
-    api.get(`/quiz/${quizId}`),
-  getQuizQuestions: (quizId) =>
-    api.get(`/quiz/${quizId}/questions`),
-  submitQuiz: (quizId, answers) =>
-    api.post(`/quiz/${quizId}/submit`, answers),
-  getQuizResults: (studentId) =>
-    api.get(`/students/${studentId}/quiz-results`),
-};
+// Course APIs
+export const courseAPI = {
+  getAll: async () => {
+    const response = await fetch(`${API_BASE}/course/getAllCourses`, {
+      headers: getAuthHeader(),
+    })
+    if (!response.ok) throw new Error('Failed to fetch courses')
+    return response.json()
+  },
 
-export default api;
+  getById: async (courseId) => {
+    const response = await fetch(`${API_BASE}/course/searchCourseById/${courseId}`, {
+      headers: getAuthHeader(),
+    })
+    if (!response.ok) throw new Error('Failed to fetch course')
+    return response.json()
+  },
+
+  getDetails: async (courseId) => {
+    const response = await fetch(`${API_BASE}/course/${courseId}/details`, {
+      headers: getAuthHeader(),
+    })
+    if (!response.ok) throw new Error('Failed to fetch course details')
+    return response.json()
+  },
+
+  getMaterials: async (courseId) => {
+    const response = await fetch(`${API_BASE}/student/courses/${courseId}/content`, {
+      headers: getAuthHeader(),
+    })
+    if (!response.ok) throw new Error('Failed to fetch materials')
+    return response.json()
+  },
+
+  search: async (query) => {
+    const response = await fetch(`${API_BASE}/course/search?query=${encodeURIComponent(query)}`, {
+      headers: getAuthHeader(),
+    })
+    if (!response.ok) throw new Error('Failed to search courses')
+    return response.json()
+  },
+}
+
+// Quiz APIs
+export const quizAPI = {
+  getQuizzes: async (courseId) => {
+    const response = await fetch(`${API_BASE}/student/courses/${courseId}/quizzes`, {
+      headers: getAuthHeader(),
+    })
+    if (!response.ok) throw new Error('Failed to fetch quizzes')
+    return response.json()
+  },
+
+  getQuizDetails: async (quizId) => {
+    const response = await fetch(`${API_BASE}/student/quizzes/${quizId}`, {
+      headers: getAuthHeader(),
+    })
+    if (!response.ok) throw new Error('Failed to fetch quiz')
+    return response.json()
+  },
+
+  submitAnswers: async (quizId, studentId, answers) => {
+    const response = await fetch(
+      `${API_BASE}/student/quizzes/${quizId}/submit?studentId=${studentId}`,
+      {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', ...getAuthHeader() },
+        body: JSON.stringify(answers),
+      }
+    )
+    if (!response.ok) throw new Error('Failed to submit quiz')
+    return response.json()
+  },
+}

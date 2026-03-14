@@ -7,6 +7,9 @@ import lombok.*;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Objects;
+import java.util.UUID;
+
+import org.springframework.util.StringUtils;
 
 
 @Entity
@@ -33,6 +36,14 @@ public class Student extends User {
     @OneToMany(mappedBy = "student", cascade = CascadeType.ALL, orphanRemoval = true)
     private List<StudentAnswer> quizAnswers = new ArrayList<>();
 
+    @PrePersist
+    @PreUpdate
+    private void ensureDefaults() {
+        if (!StringUtils.hasText(this.registrationNumber)) {
+            this.registrationNumber = "REG-" + UUID.randomUUID().toString().substring(0, 8).toUpperCase();
+        }
+    }
+
     @Override
     public String toString() {
         return "Student{" +
@@ -50,8 +61,8 @@ public class Student extends User {
         if (!(o instanceof Student)) return false;
         if (!super.equals(o)) return false;
         Student student = (Student) o;
-        return registrationNumber.equals(student.registrationNumber) &&
-                degreeProgram.equals(student.degreeProgram);
+        return Objects.equals(registrationNumber, student.registrationNumber) &&
+            Objects.equals(degreeProgram, student.degreeProgram);
     }
 
     @Override

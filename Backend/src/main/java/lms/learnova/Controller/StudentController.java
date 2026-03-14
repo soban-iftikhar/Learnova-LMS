@@ -41,6 +41,11 @@ public class StudentController {
         return studentService.getStudentById(id);
     }
 
+    @GetMapping("/searchStudentByEmail")
+    public Student getStudentByEmail(@RequestParam String email) {
+        return studentService.getStudentByEmail(email);
+    }
+
     @PostMapping("/registerStudent")
     public ResponseEntity<Student> addStudent(@RequestBody Student student) {
         Student savedStudent = studentService.addStudent(student);
@@ -195,7 +200,13 @@ public class StudentController {
     @PutMapping("/profile/{studentId}")
     public ResponseEntity<StudentDTO> updateStudentProfile(@PathVariable Long studentId,
                                                           @RequestBody StudentDTO studentDTO) {
-        Student student = studentService.updateStudent(studentId, new Student());
+        Student toUpdate = new Student();
+        toUpdate.setName(studentDTO.getName());
+        toUpdate.setEmail(studentDTO.getEmail());
+        toUpdate.setRegistrationNumber(studentDTO.getRegistrationNumber());
+        toUpdate.setDegreeProgram(studentDTO.getDegreeProgram());
+
+        Student student = studentService.updateStudent(studentId, toUpdate);
         StudentDTO dto = convertStudentToDTO(student);
         return ResponseEntity.ok(dto);
     }

@@ -1,76 +1,131 @@
-import React, { createContext, useState, useContext, useEffect } from 'react';
-import { authService } from '../services/api';
+import { createContext, useState, useEffect } from 'react'
+import { jwtDecode } from 'jwt-decode'
 
-const AuthContext = createContext();
+export const AuthContext = createContext(null)
 
-export const useAuth = () => {
-  const context = useContext(AuthContext);
-  if (!context) {
-    throw new Error('useAuth must be used within AuthProvider');
-  }
-  return context;
-};
+export function AuthProvider({ children }) {
+  const [user, setUser] = useState(null)
+  const [loading, setLoading] = useState(true)
+  const [token, setToken] = useState(null)
+  const [error, setError] = useState(null)
 
-export const AuthProvider = ({ children }) => {
-  const [user, setUser] = useState(null);
-  const [token, setToken] = useState(null);
-  const [loading, setLoading] = useState(true);
-
-  // Initialize auth from localStorage
   useEffect(() => {
-    const savedUser = localStorage.getItem('user');
-    const savedToken = localStorage.getItem('token');
-    if (savedUser && savedToken) {
-      setUser(JSON.parse(savedUser));
-      setToken(savedToken);
+    const savedToken = localStorage.getItem('authToken')
+    if (savedToken) {
+      try {
+        const decoded = jwtDecode(savedToken)
+        // Check if token is expired
+        if (decoded.exp * 1000 < Date.now()) {
+          localStorage.removeItem('authToken')
+        } else {
+          setToken(savedToken)
+          setUser({
+            id: decoded.id,
+            email: decoded.email,
+            name: decoded.name,
+            role: decoded.role,
+          })
+        }
+      } catch (error) {
+        console.error('Invalid token:', error)
+        localStorage.removeItem('authToken')
+      }
     }
-    setLoading(false);
-  }, []);
+    setLoading(false)
+  }, [])
 
-  const login = async (email, password) => {
+  const login = async (email, password, role = 'STUDENT') => {
+    setError(null)
     try {
-      const response = await authService.login(email, password);
-      const token = response.data;
+      const roleEndpoint = role === 'STUDENT' ? 'student' : 'instructor'
+      const endpoint = `${import.meta.env.VITE_API_BASE_URL}/${roleEndpoint}/login`
 
-      // Extract email from token (JWT) or use provided email
-      const userInfo = {
-        email: email,
-        id: 1, // You can decode JWT to get actual ID if needed
-      };
+      const response = await fetch(endpoint, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ email, password }),
+      })
 
-      localStorage.setItem('token', token);
-      localStorage.setItem('user', JSON.stringify(userInfo));
+      if (!response.ok) {
+        const errorData = await response.json()
+        throw new Error(errorData.message || 'Login failed')
+      }
 
-      setToken(token);
-      setUser(userInfo);
+      const tokenString = await response.text()
+      const decoded = jwtDecode(tokenString)
 
-      return { success: true };
-    } catch (error) {
-      return {
-        success: false,
-        error: error.response?.data?.message || error.message || 'Login failed',
-      };
+      localStorage.setItem('authToken', tokenString)
+      setToken(tokenString)
+      setUser({
+        id: decoded.id,
+        email: decoded.email,
+        name: decoded.name,
+        role: decoded.role,
+      })
+
+      return decoded
+    } catch (err) {
+      setError(err.message)
+      throw err
     }
-  };
+  }
+
+  const signup = async (data, role = 'STUDENT') => {
+    setError(null)
+    try {
+      const roleEndpoint = role === 'STUDENT' ? 'student/registerStudent' : 'instructor/registerInstructor'
+      const endpoint = `${import.meta.env.VITE_API_BASE_URL}/${roleEndpoint}`
+
+      const response = await fetch(endpoint, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(data),
+      })
+
+      if (!response.ok) {
+        const errorData = await response.json()
+        throw new Error(errorData.message || 'Signup failed')
+      }
+
+      const result = await response.json()
+      
+      // Auto-login after signup
+      if (result.token) {
+        const decoded = jwtDecode(result.token)
+        localStorage.setItem('authToken', result.token)
+        setToken(result.token)
+        setUser({
+          id: decoded.id,
+          email: decoded.email,
+          name: decoded.name,
+          role: decoded.role,
+        })
+      }
+
+      return result
+    } catch (err) {
+      setError(err.message)
+      throw err
+    }
+  }
 
   const logout = () => {
-    authService.logout();
-    setUser(null);
-    setToken(null);
-  };
+    localStorage.removeItem('authToken')
+    setToken(null)
+    setUser(null)
+    setError(null)
+  }
 
   const value = {
     user,
     token,
     loading,
+    error,
     login,
+    signup,
     logout,
-    isAuthenticated: !!token,
-  };
+    isAuthenticated: !!user,
+  }
 
-  return (
-    <AuthContext.Provider value={value}>
-      {children}
-    </AuthContext.Provider>
-  );
-};
+  return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>
+}

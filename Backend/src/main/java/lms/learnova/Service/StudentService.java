@@ -16,6 +16,7 @@ import org.springframework.stereotype.Service;
 import org.springframework.util.StringUtils;
 
 import java.util.List;
+import java.util.UUID;
 
 @Service
 public class StudentService {
@@ -46,6 +47,18 @@ public class StudentService {
 
     public Student addStudent(Student student) {
         ensureEmailIsAvailable(student.getEmail(), null);
+
+        // Frontend signup may send firstName/lastName instead of name.
+        // Use email prefix as a safe fallback to satisfy NOT NULL user_name.
+        if (!StringUtils.hasText(student.getName())) {
+            student.setName(extractNameFromEmail(student.getEmail()));
+        }
+
+        // Ensure registration number exists for student table constraints.
+        if (!StringUtils.hasText(student.getRegistrationNumber())) {
+            student.setRegistrationNumber("REG-" + UUID.randomUUID().toString().substring(0, 8).toUpperCase());
+        }
+
         student.setRole(Role.STUDENT);
         student.setPassword(passwordEncoder.encode(student.getPassword()));
         return studentRepo.save(student);
@@ -66,6 +79,18 @@ public class StudentService {
             .orElseThrow(() -> new ResourceNotFoundException("Student with ID " + id + " not found"));
     }
 
+    public Student getStudentByEmail(String email) {
+        if (!StringUtils.hasText(email)) {
+            throw new IllegalArgumentException("Student email is required");
+        }
+
+        Student student = studentRepo.findByEmail(email);
+        if (student == null) {
+            throw new ResourceNotFoundException("Student with email " + email + " not found");
+        }
+        return student;
+    }
+
     public Student updateStudent(Long id, Student student) {
         if (id == null) {
             throw new IllegalArgumentException("Student id is required");
@@ -73,18 +98,26 @@ public class StudentService {
         Student existingStudent = studentRepo.findById(id)
             .orElseThrow(() -> new ResourceNotFoundException("Student with ID " + id + " not found"));
 
-        ensureEmailIsAvailable(student.getEmail(), id);
+        if (StringUtils.hasText(student.getEmail())) {
+            ensureEmailIsAvailable(student.getEmail(), id);
+            existingStudent.setEmail(student.getEmail());
+        }
 
-        existingStudent.setName(student.getName());
-        existingStudent.setEmail(student.getEmail());
+        if (StringUtils.hasText(student.getName())) {
+            existingStudent.setName(student.getName());
+        }
 
         if (StringUtils.hasText(student.getPassword())
             && !passwordEncoder.matches(student.getPassword(), existingStudent.getPassword())) {
             existingStudent.setPassword(passwordEncoder.encode(student.getPassword()));
         }
 
-        existingStudent.setRegistrationNumber(student.getRegistrationNumber());
-        existingStudent.setDegreeProgram(student.getDegreeProgram());
+        if (StringUtils.hasText(student.getRegistrationNumber())) {
+            existingStudent.setRegistrationNumber(student.getRegistrationNumber());
+        }
+        if (StringUtils.hasText(student.getDegreeProgram())) {
+            existingStudent.setDegreeProgram(student.getDegreeProgram());
+        }
 
         return studentRepo.save(existingStudent);
     }
@@ -113,5 +146,15 @@ public class StudentService {
         if (existingUser != null && !existingUser.getId().equals(currentStudentId)) {
             throw new ResourceConflictException("Email is already registered: " + email);
         }
+    }
+
+    private String extractNameFromEmail(String email) {
+        if (!StringUtils.hasText(email)) {
+            return "Student";
+        }
+
+        int atIndex = email.indexOf('@');
+        String localPart = atIndex > 0 ? email.substring(0, atIndex) : email;
+        return StringUtils.hasText(localPart) ? localPart : "Student";
     }
 }
