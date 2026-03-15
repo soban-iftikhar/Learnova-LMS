@@ -1,6 +1,5 @@
 package lms.learnova.Controller;
 
-import lms.learnova.DTOs.StudentAnswerDTO;
 import lms.learnova.Model.*;
 import lms.learnova.Repository.QuizQuestionRepo;
 import lms.learnova.Repository.QuizRepo;
@@ -24,13 +23,14 @@ import java.util.stream.Collectors;
 /**
  * Student-facing quiz endpoints.
  *
+ * GET  /courses/{courseId}/quizzes  — published quizzes only
+ * POST /quizzes/{quizId}/start      — start attempt, get questions
+ * POST /quizzes/{quizId}/submit     — submit answers, get score
+ *
  * FIXED:
- * 1. startQuiz no longer calls canStudentTakeQuiz() — it just loads the quiz.
- *    canStudentTakeQuiz() threw IllegalStateException for quizzes without
- *    time windows and also when answer count was 0 (division by zero in QuizService).
- * 2. submitQuiz handles empty answers array safely (returns 0% rather than crashing).
- * 3. Grades questions in-controller without relying on QuizService.submitQuizAnswers
- *    (which has the same division-by-zero bug when totalMarks == 0).
+ * - No longer calls canStudentTakeQuiz() — it threw when no time window set
+ * - Handles empty answers array safely (returns 0% not crash)
+ * - Correct timeLimitSeconds: -1 default → returned as 1800 (30 min)
  */
 @RestController
 public class QuizzesApiController {
@@ -53,25 +53,25 @@ public class QuizzesApiController {
         this.userRepo     = userRepo;
     }
 
-    // ── GET /courses/{courseId}/quizzes (published only — student view) ──────
+    // ── GET /courses/{courseId}/quizzes ──────────────────────────────────────
     @GetMapping("/courses/{courseId}/quizzes")
     public ResponseEntity<?> getCourseQuizzes(@PathVariable Long courseId) {
         List<Map<String, Object>> quizzes = quizService.getQuizzesByCourse(courseId)
-                .stream()
-                .map(q -> {
-                    long count = questionRepo.countByQuizId(q.getId());
+                .stream().map(q -> {
+                    long count   = questionRepo.countByQuizId(q.getId());
+                    int  seconds = q.getTimeLimitSeconds() != null ? q.getTimeLimitSeconds() : 1800;
+                    int  minutes = seconds > 0 ? seconds / 60 : 30;
                     Map<String, Object> m = new LinkedHashMap<>();
                     m.put("id",              q.getId());
                     m.put("title",           q.getTitle());
                     m.put("description",     q.getDescription() != null ? q.getDescription() : "");
                     m.put("question_count",  count);
-                    m.put("time_limit",      q.getTimeLimitSeconds() != null ? q.getTimeLimitSeconds() / 60 : 30);
+                    m.put("time_limit",      minutes);
                     m.put("pass_percentage", 70);
                     m.put("max_score",       q.getMaxScore() != null ? q.getMaxScore() : 100);
-                    m.put("status",          Boolean.TRUE.equals(q.getIsPublished()) ? "ACTIVE" : "DRAFT");
+                    m.put("status",          "ACTIVE");
                     return m;
-                })
-                .collect(Collectors.toList());
+                }).collect(Collectors.toList());
 
         Map<String, Object> resp = new LinkedHashMap<>();
         resp.put("content", quizzes);
@@ -86,10 +86,8 @@ public class QuizzesApiController {
         Quiz quiz = quizRepo.findById(quizId)
                 .orElseThrow(() -> new ResourceNotFoundException("Quiz not found: " + quizId));
 
-        // Build question list — never call quiz.getQuestions() (LAZY)
         List<Map<String, Object>> questions = questionRepo
-                .findByQuizIdOrderByQuestionOrder(quizId)
-                .stream()
+                .findByQuizIdOrderByQuestionOrder(quizId).stream()
                 .map(q -> {
                     Map<String, Object> m = new LinkedHashMap<>();
                     m.put("id",       q.getId());
@@ -102,15 +100,16 @@ public class QuizzesApiController {
                     m.put("options", opts);
                     m.put("type",    "MULTIPLE_CHOICE");
                     return m;
-                })
-                .collect(Collectors.toList());
+                }).collect(Collectors.toList());
+
+        int seconds = quiz.getTimeLimitSeconds() != null ? quiz.getTimeLimitSeconds() : 1800;
+        if (seconds <= 0) seconds = 1800; // treat -1 (no limit) as 30 min
 
         Map<String, Object> body = new LinkedHashMap<>();
         body.put("attempt_id", System.currentTimeMillis());
         body.put("quiz_id",    quizId);
         body.put("started_at", java.time.Instant.now().toString());
-        // Return seconds so frontend countdown timer works correctly
-        body.put("time_limit", quiz.getTimeLimitSeconds() != null ? quiz.getTimeLimitSeconds() : 1800);
+        body.put("time_limit", seconds);   // seconds — frontend timer uses this
         body.put("questions",  questions);
         return ResponseEntity.status(HttpStatus.CREATED).body(body);
     }
@@ -124,70 +123,59 @@ public class QuizzesApiController {
         @SuppressWarnings("unchecked")
         List<Map<String, Object>> rawAnswers = (List<Map<String, Object>>) body.get("answers");
 
-        // Safe empty-answers handling — no crash, just 0 score
         if (rawAnswers == null || rawAnswers.isEmpty()) {
-            Map<String, Object> resp = buildResult(body, 0, 0, 0, 0);
-            return ResponseEntity.ok(resp);
+            return ResponseEntity.ok(buildResult(body, 0, 0, 0, 0));
         }
 
         int totalMarks = 0, marksObtained = 0, correct = 0;
 
-        // Load student once for persisting answers
         User userEntity = userRepo.findById(studentId).orElse(null);
-        Student student = (userEntity instanceof Student) ? (Student) userEntity : null;
+        Student student = (userEntity instanceof Student s) ? s : null;
         Quiz quiz = quizRepo.findById(quizId).orElse(null);
 
         for (Map<String, Object> a : rawAnswers) {
             Long qId = toLong(a.get("question_id"));
             if (qId == null) continue;
-
             QuizQuestion q = questionRepo.findById(qId).orElse(null);
             if (q == null) continue;
 
-            int marks = q.getMarks() != null ? q.getMarks() : 1;
-            totalMarks += marks;
+            int marks    = q.getMarks() != null ? q.getMarks() : 1;
+            totalMarks  += marks;
+            String sel   = a.get("answer") != null ? String.valueOf(a.get("answer")) : "";
+            boolean isOk = !sel.isEmpty() && sel.equalsIgnoreCase(q.getCorrectAnswer());
+            if (isOk) { marksObtained += marks; correct++; }
 
-            String selected = a.get("answer") != null ? String.valueOf(a.get("answer")) : "";
-            boolean isCorrect = !selected.isEmpty()
-                    && selected.equalsIgnoreCase(q.getCorrectAnswer());
-
-            if (isCorrect) { marksObtained += marks; correct++; }
-
-            // Persist answer
             if (student != null && quiz != null) {
                 try {
                     StudentAnswer sa = new StudentAnswer();
                     sa.setStudent(student);
                     sa.setQuiz(quiz);
                     sa.setQuestion(q);
-                    sa.setSelectedAnswer(selected);
-                    sa.setIsCorrect(isCorrect);
-                    sa.setMarksObtained(isCorrect ? marks : 0);
+                    sa.setSelectedAnswer(sel);
+                    sa.setIsCorrect(isOk);
+                    sa.setMarksObtained(isOk ? marks : 0);
                     answerRepo.save(sa);
                 } catch (Exception ignored) {}
             }
         }
 
-        Map<String, Object> resp = buildResult(body, totalMarks, marksObtained, correct, rawAnswers.size());
-        return ResponseEntity.ok(resp);
+        return ResponseEntity.ok(buildResult(body, totalMarks, marksObtained, correct, rawAnswers.size()));
     }
 
     // ─── Helpers ─────────────────────────────────────────────────────────────
-
     private Map<String, Object> buildResult(Map<String, Object> body,
                                              int total, int obtained, int correct, int answered) {
-        double pct    = total == 0 ? 0.0 : Math.round((obtained * 100.0 / total) * 10.0) / 10.0;
-        boolean passed = pct >= 70.0;
-
+        double pct  = total == 0 ? 0.0 : Math.round(obtained * 100.0 / total * 10.0) / 10.0;
+        boolean pass = pct >= 70.0;
         Map<String, Object> r = new LinkedHashMap<>();
         r.put("attempt_id",  body.getOrDefault("attempt_id", 0));
         r.put("score",       obtained);
         r.put("max_score",   total);
         r.put("percentage",  pct);
-        r.put("passed",      passed);
+        r.put("passed",      pass);
         r.put("correct",     correct);
         r.put("total",       answered);
-        r.put("feedback",    passed ? "Great job! You passed the quiz." : "Keep studying and try again.");
+        r.put("feedback",    pass ? "Great job! You passed." : "Keep studying and try again.");
         r.put("submitted_at", java.time.Instant.now().toString());
         return r;
     }

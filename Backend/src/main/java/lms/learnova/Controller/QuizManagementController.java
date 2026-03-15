@@ -22,12 +22,10 @@ import java.util.Map;
 import java.util.stream.Collectors;
 
 /**
- * Full quiz management for instructors.
+ * Teacher quiz management.
  *
- * NEW:
- * GET  /courses/{courseId}/quizzes/manage  — ALL quizzes (draft + published) for teacher
+ * NEW: GET /courses/{courseId}/quizzes/manage  — ALL quizzes (draft + published) for teacher
  *
- * Existing:
  * POST   /courses/{courseId}/quizzes
  * PUT    /quizzes/{quizId}
  * DELETE /quizzes/{quizId}
@@ -58,13 +56,11 @@ public class QuizManagementController {
         this.quizCreationService = quizCreationService;
     }
 
-    // ── GET /courses/{courseId}/quizzes/manage  (teacher — ALL quizzes) ─────
+    // ── GET /courses/{courseId}/quizzes/manage  (teacher — ALL quizzes incl. drafts) ──
     @GetMapping("/courses/{courseId}/quizzes/manage")
     public ResponseEntity<?> listForTeacher(@PathVariable Long courseId) {
         List<Map<String, Object>> quizzes = quizRepo.findByCourseId(courseId)
-                .stream()
-                .map(this::quizToMap)
-                .collect(Collectors.toList());
+                .stream().map(this::quizToMap).collect(Collectors.toList());
         Map<String, Object> resp = new LinkedHashMap<>();
         resp.put("content", quizzes);
         return ResponseEntity.ok(resp);
@@ -79,7 +75,9 @@ public class QuizManagementController {
         dto.setTitle(str(body, "title", "New Quiz"));
         dto.setDescription(str(body, "description", ""));
         dto.setMaxScore(toInt(body.get("max_score"), 100));
-        dto.setTimeLimitSeconds(toInt(body.get("time_limit"), 30) * 60);
+        // Use 30 min default (1800 sec). Frontend sends minutes; convert to seconds.
+        int timeLimitMinutes = toInt(body.get("time_limit"), 30);
+        dto.setTimeLimitSeconds(timeLimitMinutes > 0 ? timeLimitMinutes * 60 : 1800);
         Quiz quiz = quizCreationService.createQuiz(courseId, instructorId, dto);
         return ResponseEntity.status(HttpStatus.CREATED).body(quizToMap(quiz));
     }
@@ -90,10 +88,13 @@ public class QuizManagementController {
                                          @RequestBody Map<String, Object> body) {
         Quiz quiz = quizRepo.findById(quizId)
                 .orElseThrow(() -> new ResourceNotFoundException("Quiz not found"));
-        if (body.containsKey("title"))       quiz.setTitle(str(body, "title", ""));
+        if (body.containsKey("title"))      quiz.setTitle(str(body, "title", ""));
         if (body.containsKey("description")) quiz.setDescription(str(body, "description", ""));
-        if (body.containsKey("max_score"))   quiz.setMaxScore(toInt(body.get("max_score"), 100));
-        if (body.containsKey("time_limit"))  quiz.setTimeLimitSeconds(toInt(body.get("time_limit"), 30) * 60);
+        if (body.containsKey("max_score"))  quiz.setMaxScore(toInt(body.get("max_score"), 100));
+        if (body.containsKey("time_limit")) {
+            int mins = toInt(body.get("time_limit"), 30);
+            quiz.setTimeLimitSeconds(mins > 0 ? mins * 60 : 1800);
+        }
         quizRepo.save(quiz);
         return ResponseEntity.ok(quizToMap(quiz));
     }
@@ -172,12 +173,17 @@ public class QuizManagementController {
     private Map<String, Object> quizToMap(Quiz q) {
         long questionCount = 0;
         try { questionCount = questionRepo.countByQuizId(q.getId()); } catch (Exception ignored) {}
+
+        // timeLimitSeconds: -1 means "no limit" (default in model). Treat as 30 min for display.
+        int seconds = q.getTimeLimitSeconds() != null ? q.getTimeLimitSeconds() : 1800;
+        int minutes = seconds > 0 ? seconds / 60 : 30;
+
         Map<String, Object> m = new LinkedHashMap<>();
         m.put("id",             q.getId());
         m.put("title",          q.getTitle());
         m.put("description",    q.getDescription() != null ? q.getDescription() : "");
         m.put("max_score",      q.getMaxScore() != null ? q.getMaxScore() : 100);
-        m.put("time_limit",     q.getTimeLimitSeconds() != null ? q.getTimeLimitSeconds() / 60 : 30);
+        m.put("time_limit",     minutes);
         m.put("question_count", questionCount);
         m.put("is_published",   Boolean.TRUE.equals(q.getIsPublished()));
         m.put("status",         Boolean.TRUE.equals(q.getIsPublished()) ? "ACTIVE" : "DRAFT");

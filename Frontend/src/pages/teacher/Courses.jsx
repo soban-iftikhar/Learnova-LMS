@@ -1,29 +1,33 @@
 import React, { useState } from 'react'
 import { useNavigate } from 'react-router-dom'
-import { Plus, Search, BookOpen, Settings2, BarChart2 } from 'lucide-react'
+import { Plus, Search, BookOpen, Settings2, BarChart2, MessageCircle } from 'lucide-react'
 import { coursesApi } from '../../api/courses'
 import { useAsync, useDebounce } from '../../hooks/index'
 import Button from '../../components/common/Button'
 import Input from '../../components/common/Input'
 import Badge from '../../components/common/Badge'
+import CourseChat from '../../components/common/CourseChat'
 import { SectionLoader } from '../../components/common/Spinner'
 import { EmptyState, ErrorState } from '../../components/common/EmptyState'
+import { useAuth } from '../../context/AuthContext'
 
 const STATUSES = ['all', 'ACTIVE', 'DRAFT']
 
 export default function TeacherCourses() {
   const navigate        = useNavigate()
+  const { user }        = useAuth()
   const [filter, setFilter] = useState('all')
   const [search, setSearch] = useState('')
-  const debouncedSearch     = useDebounce(search, 300)
+  const [chatCourse, setChatCourse] = useState(null) // { id, title }
+  const debouncedSearch = useDebounce(search, 300)
 
   const { data, loading, error, refetch } = useAsync(
-    () => coursesApi.getAll({ size: 100 }),
+    () => coursesApi.getAll({ size: 100, mine: 'true' }),
     []
   )
 
   const allCourses = data?.content || []
-  const courses    = allCourses
+  const courses = allCourses
     .filter(c => filter === 'all' || c.status === filter)
     .filter(c => !debouncedSearch || c.title?.toLowerCase().includes(debouncedSearch.toLowerCase()))
 
@@ -83,7 +87,7 @@ export default function TeacherCourses() {
                   <td className="py-3 px-4 text-center text-gray-700">{course.students_count ?? 0}</td>
                   <td className="py-3 px-4 text-center">
                     <Badge variant={course.status === 'ACTIVE' ? 'success' : 'draft'} dot size="sm">
-                      {course.status || 'DRAFT'}
+                      {course.status || 'ACTIVE'}
                     </Badge>
                   </td>
                   <td className="py-3 px-4 text-center">
@@ -100,6 +104,15 @@ export default function TeacherCourses() {
                         className="flex items-center gap-1 text-brand-500 hover:text-brand-700 text-xs font-semibold">
                         <BarChart2 size={13} />Stats
                       </button>
+                      <span className="text-gray-300">|</span>
+                      <button onClick={() => setChatCourse(chatCourse?.id === course.id ? null : course)}
+                        className={`flex items-center gap-1 text-xs font-semibold transition-colors ${
+                          chatCourse?.id === course.id
+                            ? 'text-brand-600'
+                            : 'text-gray-400 hover:text-brand-500'
+                        }`}>
+                        <MessageCircle size={13} />Chat
+                      </button>
                     </div>
                   </td>
                 </tr>
@@ -107,6 +120,17 @@ export default function TeacherCourses() {
             </tbody>
           </table>
         </div>
+      )}
+
+      {/* Teacher chat — appears as floating bubble when a course is selected */}
+      {chatCourse && (
+        <CourseChat
+          key={chatCourse.id}
+          courseId={String(chatCourse.id)}
+          courseName={chatCourse.title}
+          instructorName={user?.name}
+          defaultOpen
+        />
       )}
     </div>
   )

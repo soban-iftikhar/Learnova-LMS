@@ -1,76 +1,65 @@
-import React, { useState, useEffect } from 'react'
+import React, { useState } from 'react'
 import { useNavigate } from 'react-router-dom'
-import { Search, BookOpen, Users, Plus, CheckCircle2 } from 'lucide-react'
+import { Search, Filter, BookOpen, Users, Star, Plus, CheckCircle2 } from 'lucide-react'
 import { coursesApi } from '../../api/courses'
 import { enrollmentsApi } from '../../api/index'
 import { useAsync, useDebounce } from '../../hooks/index'
 import { useToast } from '../../components/common/Toast'
 import Input from '../../components/common/Input'
+import Badge from '../../components/common/Badge'
 import Button from '../../components/common/Button'
 import { SectionLoader } from '../../components/common/Spinner'
 import { EmptyState, ErrorState } from '../../components/common/EmptyState'
 
-const CATEGORIES = [
-  'All', 'Programming', 'Web Development', 'Design',
-  'Data Science', 'Business', 'Mathematics', 'Science', 'Language',
-]
+const CATEGORIES = ['All', 'Programming', 'Web Development', 'Design', 'Data Science', 'Business', 'Mathematics', 'Science', 'Language']
 
-// Deterministic coloured header when no image
-const PALETTE = [
-  'bg-brand-500', 'bg-violet-500', 'bg-sky-500',
-  'bg-amber-500', 'bg-rose-500',  'bg-emerald-500',
+const PLACEHOLDER_IMAGES = [
+  'https://images.unsplash.com/photo-1516321318423-f06f85e504b3?w=400&h=200&fit=crop',
+  'https://images.unsplash.com/photo-1498050108023-c5249f4df085?w=400&h=200&fit=crop',
+  'https://images.unsplash.com/photo-1461749280684-dccba630e2f6?w=400&h=200&fit=crop',
+  'https://images.unsplash.com/photo-1555066931-4365d14bab8c?w=400&h=200&fit=crop',
+  'https://images.unsplash.com/photo-1519389950473-47ba0277781c?w=400&h=200&fit=crop',
 ]
 
 export default function BrowseCourses() {
   const navigate = useNavigate()
   const toast    = useToast()
-
-  const [search, setSearch]     = useState('')
-  const [category, setCategory] = useState('All')
+  const [search, setSearch]       = useState('')
+  const [category, setCategory]   = useState('All')
   const [enrolling, setEnrolling] = useState(null)
-  // Set of course IDs the student is already enrolled in
-  const [enrolledIds, setEnrolledIds] = useState(new Set())
-
+  const [enrolled, setEnrolled]   = useState(new Set())
   const debouncedSearch = useDebounce(search, 300)
 
-  // Load all courses
-  const { data, loading, error, refetch } = useAsync(
-    () => coursesApi.getAll({
-      size: 50,
-      search:   debouncedSearch || undefined,
-      category: category !== 'All' ? category : undefined,
-    }),
-    [debouncedSearch, category]
-  )
-  const courses = data?.content || []
-
-  // Pre-load existing enrollments so the button shows the right state immediately
+  // Pre-load already-enrolled course IDs so button shows correct state immediately
   useEffect(() => {
     enrollmentsApi.getMyCourses({ size: 200 })
       .then(res => {
         const ids = new Set(
           (res.data?.content || []).map(e => e.course?.id).filter(Boolean)
         )
-        setEnrolledIds(ids)
+        setEnrolled(ids)
       })
-      .catch(() => {/* ignore — not critical */})
+      .catch(() => {})
   }, [])
 
+  const { data, loading, error, refetch } = useAsync(
+    () => coursesApi.getAll({ size: 50, search: debouncedSearch || undefined,
+      category: category !== 'All' ? category : undefined }),
+    [debouncedSearch, category]
+  )
+
+  const courses = data?.content || []
+
   const handleEnroll = async (courseId) => {
-    if (enrolledIds.has(courseId)) {
-      navigate(`/courses/${courseId}`)
-      return
-    }
     setEnrolling(courseId)
     try {
       await enrollmentsApi.enroll(courseId)
-      setEnrolledIds(prev => new Set([...prev, courseId]))
+      setEnrolled(s => new Set([...s, courseId]))
       toast.success('Enrolled! Go to My Courses to start learning.')
     } catch (err) {
       const msg = err?.response?.data?.error || ''
       if (msg.toLowerCase().includes('already')) {
-        // Already enrolled — update local state and don't show an error
-        setEnrolledIds(prev => new Set([...prev, courseId]))
+        setEnrolled(s => new Set([...s, courseId]))
         toast.info('You are already enrolled in this course.')
       } else {
         toast.error(msg || 'Could not enroll. Please try again.')
@@ -82,6 +71,7 @@ export default function BrowseCourses() {
 
   return (
     <div className="animate-fade-in space-y-6">
+      {/* Header */}
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
         <div>
           <h1 className="page-title">Browse Courses</h1>
@@ -89,32 +79,30 @@ export default function BrowseCourses() {
         </div>
       </div>
 
-      {/* Search + Category filters */}
+      {/* Search + Filters */}
       <div className="flex flex-col sm:flex-row gap-3">
         <div className="flex-1 max-w-sm">
           <Input placeholder="Search courses…" leftIcon={<Search size={16} />}
-            value={search} onChange={e => setSearch(e.target.value)} />
+            value={search} onChange={e => setSearch(e.target.value)} className="py-2" />
         </div>
         <div className="flex items-center gap-1 flex-wrap">
           {CATEGORIES.map(cat => (
             <button key={cat} onClick={() => setCategory(cat)}
-              className={`px-3 py-1.5 text-xs font-medium rounded-full transition-all ${
-                category === cat
-                  ? 'bg-brand-500 text-white'
-                  : 'bg-surface-muted text-gray-500 hover:text-ink'
-              }`}>
+              className={`px-3 py-1.5 text-xs font-medium rounded-full transition-all ${category === cat
+                ? 'bg-brand-500 text-white'
+                : 'bg-surface-muted text-gray-500 hover:text-ink'}`}>
               {cat}
             </button>
           ))}
         </div>
       </div>
 
+      {/* Results count */}
       {!loading && !error && (
-        <p className="text-sm text-gray-400">
-          {courses.length} course{courses.length !== 1 ? 's' : ''} found
-        </p>
+        <p className="text-sm text-gray-400">{courses.length} course{courses.length !== 1 ? 's' : ''} found</p>
       )}
 
+      {/* Grid */}
       {loading ? (
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-5">
           {[...Array(6)].map((_, i) => (
@@ -126,32 +114,19 @@ export default function BrowseCourses() {
       ) : !courses.length ? (
         <EmptyState icon={BookOpen}
           title={search ? 'No matching courses' : 'No courses yet'}
-          description={search
-            ? `No results for "${search}".`
-            : 'Courses will appear here once instructors publish them.'
-          } />
+          description={search ? `No results for "${search}".` : 'Courses will appear here once instructors publish them.'} />
       ) : (
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-5">
           {courses.map((course, idx) => {
-            const isEnrolled = enrolledIds.has(course.id)
-            const paletteBg  = PALETTE[course.id % PALETTE.length]
-
+            const isEnrolled = enrolled.has(course.id)
+            const img = course.image_url || PLACEHOLDER_IMAGES[idx % PLACEHOLDER_IMAGES.length]
             return (
               <div key={course.id} className="card-hover group flex flex-col">
-                {/* Thumbnail — image or coloured title block */}
-                <div className="aspect-video overflow-hidden rounded-t-2xl">
-                  {course.image_url ? (
-                    <img src={course.image_url} alt={course.title}
-                      className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-105"
-                      onError={e => { e.currentTarget.style.display = 'none'; e.currentTarget.nextSibling.style.display = 'flex' }}
-                    />
-                  ) : null}
-                  <div
-                    className={`${paletteBg} w-full h-full flex items-center justify-center p-4 ${course.image_url ? 'hidden' : 'flex'}`}
-                    style={{ display: course.image_url ? 'none' : 'flex' }}
-                  >
-                    <p className="text-white font-bold text-base text-center line-clamp-3">{course.title}</p>
-                  </div>
+                {/* Thumbnail */}
+                <div className="aspect-video overflow-hidden bg-gray-100">
+                  <img src={img} alt={course.title}
+                    className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-105"
+                    onError={e => { e.currentTarget.src = PLACEHOLDER_IMAGES[idx % PLACEHOLDER_IMAGES.length] }} />
                 </div>
 
                 {/* Body */}
@@ -164,6 +139,7 @@ export default function BrowseCourses() {
                   </h3>
                   <p className="text-xs text-gray-400 line-clamp-2 mb-3">{course.description}</p>
 
+                  {/* Meta */}
                   <div className="flex items-center gap-3 text-xs text-gray-400 mb-4">
                     {course.instructor?.name && (
                       <span className="truncate">{course.instructor.name}</span>
@@ -175,7 +151,7 @@ export default function BrowseCourses() {
                     )}
                   </div>
 
-                  {/* Content badges */}
+                  {/* Content counts */}
                   <div className="flex gap-2 mb-4">
                     {course.videos_count > 0 && (
                       <span className="text-xs bg-blue-50 text-blue-600 px-2 py-0.5 rounded-full">
@@ -198,13 +174,10 @@ export default function BrowseCourses() {
                       size="sm"
                       variant={isEnrolled ? 'secondary' : 'primary'}
                       loading={enrolling === course.id}
-                      onClick={() => handleEnroll(course.id)}
+                      onClick={() => isEnrolled ? navigate(`/courses/${course.id}`) : handleEnroll(course.id)}
                       className="flex-shrink-0"
                     >
-                      {isEnrolled
-                        ? <><CheckCircle2 size={13} /> Enrolled</>
-                        : <><Plus size={13} /> Enroll</>
-                      }
+                      {isEnrolled ? <><CheckCircle2 size={13} /> Enrolled</> : <><Plus size={13} /> Enroll</>}
                     </Button>
                   </div>
                 </div>

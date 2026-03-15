@@ -270,7 +270,7 @@ function QuizzesTab({ courseId }) {
                 <div className="flex-1 min-w-0">
                   <p className="text-sm font-semibold text-ink">{quiz.title}</p>
                   <div className="flex items-center gap-3 mt-1 text-xs text-gray-400">
-                    <span className="flex items-center gap-1"><Clock size={11} />{quiz.time_limit} min</span>
+                    <span className="flex items-center gap-1"><Clock size={11} />{quiz.time_limit > 0 ? `${quiz.time_limit} min` : "No limit"}</span>
                     <span>{quiz.question_count} questions</span>
                     <span>{quiz.max_score} pts</span>
                   </div>

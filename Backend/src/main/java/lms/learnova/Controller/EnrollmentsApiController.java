@@ -21,16 +21,6 @@ import java.util.List;
 import java.util.Map;
 import java.util.stream.Collectors;
 
-/**
- * /enrollments
- *
- * FIXED: progress field now calculated from:
- *   - quizzes attempted (via StudentAnswerRepo) for this student in this course
- *   - assignments submitted (via SubmissionsApiController store) — approximated as 50%
- *     contribution toward total possible activities
- *
- * Enrollment status is now updated to COMPLETED when progress reaches 100%.
- */
 @RestController
 @RequestMapping("/enrollments")
 public class EnrollmentsApiController {
@@ -48,12 +38,12 @@ public class EnrollmentsApiController {
                                     UserRepo userRepo,
                                     QuizRepo quizRepo,
                                     StudentAnswerRepo studentAnswerRepo) {
-        this.enrollmentService  = enrollmentService;
-        this.enrollmentRepo     = enrollmentRepo;
-        this.studentService     = studentService;
-        this.userRepo           = userRepo;
-        this.quizRepo           = quizRepo;
-        this.studentAnswerRepo  = studentAnswerRepo;
+        this.enrollmentService = enrollmentService;
+        this.enrollmentRepo    = enrollmentRepo;
+        this.studentService    = studentService;
+        this.userRepo          = userRepo;
+        this.quizRepo          = quizRepo;
+        this.studentAnswerRepo = studentAnswerRepo;
     }
 
     // POST /enrollments
@@ -61,9 +51,7 @@ public class EnrollmentsApiController {
     public ResponseEntity<?> enroll(@RequestBody Map<String, Object> body) {
         Long courseId  = toLong(body.get("course_id"));
         Long studentId = getCurrentStudentId();
-
         Enrollment enrollment = enrollmentService.enrollStudent(studentId, courseId);
-
         Map<String, Object> resp = new LinkedHashMap<>();
         resp.put("id",              enrollment.getId());
         resp.put("student_id",      studentId);
@@ -94,28 +82,32 @@ public class EnrollmentsApiController {
         int from       = Math.min((page - 1) * size, total);
         int to         = Math.min(from + size, total);
 
+        // Count all enrollments PER COURSE in one shot to avoid N+1 queries
+        // Build a map of courseId → count using only the enrollments we already fetched
+        Map<Long, Long> courseStudentCount = new java.util.HashMap<>();
+        for (Enrollment e : filtered) {
+            Long cid = e.getCourse().getId();
+            courseStudentCount.computeIfAbsent(cid, k ->
+                (long) enrollmentRepo.findByCourseId(k).stream()
+                    .filter(en -> !"DROPPED".equalsIgnoreCase(en.getStatus())).count()
+            );
+        }
+
         List<Map<String, Object>> content = filtered.subList(from, to).stream()
                 .map(e -> {
                     var course = e.getCourse();
-
-                    long studentCount = enrollmentRepo.findByCourseId(course.getId()).stream()
-                            .filter(en -> !"DROPPED".equalsIgnoreCase(en.getStatus())).count();
-
-                    // ── Calculate real progress ──────────────────────────────
-                    int progress = calculateProgress(studentId, course.getId());
+                    long studentCount = courseStudentCount.getOrDefault(course.getId(), 0L);
+                    int  progress     = calculateProgress(studentId, course.getId());
 
                     Map<String, Object> cat = new LinkedHashMap<>();
                     if (course.getCategory() != null) {
-                        cat.put("id",   0);
-                        cat.put("name", course.getCategory());
+                        cat.put("id", 0); cat.put("name", course.getCategory());
                     }
-
                     Map<String, Object> instr = new LinkedHashMap<>();
                     if (course.getInstructor() != null) {
                         instr.put("id",   course.getInstructor().getId());
                         instr.put("name", course.getInstructor().getName());
                     }
-
                     Map<String, Object> courseMap = new LinkedHashMap<>();
                     courseMap.put("id",             course.getId());
                     courseMap.put("title",          course.getTitle());
@@ -132,15 +124,11 @@ public class EnrollmentsApiController {
                     m.put("enrollment_date", e.getEnrollmentDate().toString());
                     m.put("course",          courseMap);
                     return m;
-                })
-                .collect(Collectors.toList());
+                }).collect(Collectors.toList());
 
         Map<String, Object> pagination = new LinkedHashMap<>();
-        pagination.put("page",           page);
-        pagination.put("size",           size);
-        pagination.put("total_elements", total);
-        pagination.put("total_pages",    totalPages);
-
+        pagination.put("page", page); pagination.put("size", size);
+        pagination.put("total_elements", total); pagination.put("total_pages", totalPages);
         Map<String, Object> resp = new LinkedHashMap<>();
         resp.put("content",    content);
         resp.put("pagination", pagination);
@@ -151,48 +139,44 @@ public class EnrollmentsApiController {
     @DeleteMapping("/{enrollmentId}")
     public ResponseEntity<Void> unenroll(@PathVariable Long enrollmentId) {
         Long studentId = getCurrentStudentId();
-
         Enrollment enrollment = enrollmentRepo.findById(enrollmentId)
                 .orElseThrow(() -> new ResourceNotFoundException("Enrollment not found: " + enrollmentId));
-
-        if (!enrollment.getStudent().getId().equals(studentId)) {
+        if (!enrollment.getStudent().getId().equals(studentId))
             throw new UnauthorizedException("Cannot unenroll from another student's enrollment");
-        }
-
         enrollment.setStatus("DROPPED");
         enrollmentRepo.save(enrollment);
         return ResponseEntity.noContent().build();
     }
 
-    // ─── Progress calculation ─────────────────────────────────────────────────
-    /**
-     * Progress = percentage of quizzes attempted out of total published quizzes.
-     * Falls back to 0 if no quizzes exist in the course.
-     * Simple, accurate, based on real StudentAnswer records in the DB.
-     */
-    private int calculateProgress(Long studentId, Long courseId) {
-        try {
-            // Total published quizzes in the course
-            long totalQuizzes = quizRepo.findByCourseIdAndIsPublishedTrue(courseId).size();
-            if (totalQuizzes == 0) return 0;
-
-            // Distinct quizzes this student has submitted answers for
-            long attempted = studentAnswerRepo.findByStudentId(studentId).stream()
-                    .filter(a -> a.getQuiz() != null
-                            && a.getQuiz().getCourse() != null
-                            && courseId.equals(a.getQuiz().getCourse().getId()))
-                    .map(a -> a.getQuiz().getId())
-                    .distinct()
-                    .count();
-
-            int pct = (int) Math.min(100, (attempted * 100 / totalQuizzes));
-            return pct;
-        } catch (Exception ignored) {
-            return 0;
-        }
+    // PUT /enrollments/{enrollmentId}/complete  — teacher marks student as complete
+    @PutMapping("/{enrollmentId}/complete")
+    public ResponseEntity<?> markComplete(@PathVariable Long enrollmentId) {
+        Enrollment enrollment = enrollmentRepo.findById(enrollmentId)
+                .orElseThrow(() -> new ResourceNotFoundException("Enrollment not found: " + enrollmentId));
+        enrollment.setStatus("COMPLETED");
+        enrollmentRepo.save(enrollment);
+        Map<String, Object> resp = new LinkedHashMap<>();
+        resp.put("id",              enrollment.getId());
+        resp.put("status",          "COMPLETED");
+        resp.put("student_name",    enrollment.getStudent().getName());
+        resp.put("course_title",    enrollment.getCourse().getTitle());
+        resp.put("message",         "Course marked as complete.");
+        return ResponseEntity.ok(resp);
     }
 
-    // ─── Helpers ─────────────────────────────────────────────────────────────
+    // ─── Progress ────────────────────────────────────────────────────────────
+    private int calculateProgress(Long studentId, Long courseId) {
+        try {
+            long total = quizRepo.findByCourseIdAndIsPublishedTrue(courseId).size();
+            if (total == 0) return 0;
+            long attempted = studentAnswerRepo.findByStudentId(studentId).stream()
+                    .filter(a -> a.getQuiz() != null && a.getQuiz().getCourse() != null
+                            && courseId.equals(a.getQuiz().getCourse().getId()))
+                    .map(a -> a.getQuiz().getId()).distinct().count();
+            return (int) Math.min(100, attempted * 100 / total);
+        } catch (Exception ignored) { return 0; }
+    }
+
     private Long getCurrentStudentId() {
         Authentication auth = SecurityContextHolder.getContext().getAuthentication();
         if (auth == null) throw new UnauthorizedException("Not authenticated");

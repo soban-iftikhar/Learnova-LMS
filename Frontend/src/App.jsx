@@ -31,6 +31,8 @@ const CreateCourse       = lazy(() => import('./pages/teacher/CreateCourse'))
 const EditCourse         = lazy(() => import('./pages/teacher/EditCourse'))
 const CourseBuilder      = lazy(() => import('./pages/teacher/CourseBuilder'))
 const CourseAnalytics    = lazy(() => import('./pages/teacher/CourseAnalytics'))
+const TeacherQuizzes     = lazy(() => import('./pages/teacher/Quizzes'))
+const TeacherChat        = lazy(() => import('./pages/teacher/Chat'))
 const TeacherAssignments = lazy(() => import('./pages/teacher/Assignments'))
 const TeacherAttendance  = lazy(() => import('./pages/teacher/Attendance'))
 const TeacherSettings    = lazy(() => import('./pages/teacher/Settings'))
@@ -86,6 +88,8 @@ const App = () => (
               <Route path="/teacher/courses/:courseId/edit"      element={<EditCourse />} />
               <Route path="/teacher/courses/:courseId/build"     element={<CourseBuilder />} />
               <Route path="/teacher/courses/:courseId/analytics" element={<CourseAnalytics />} />
+              <Route path="/teacher/quizzes"                    element={<TeacherQuizzes />} />
+              <Route path="/teacher/chat"                       element={<TeacherChat />} />
               <Route path="/teacher/assignments"                 element={<TeacherAssignments />} />
               <Route path="/teacher/attendance"                  element={<TeacherAttendance />} />
               <Route path="/teacher/settings"                    element={<TeacherSettings />} />

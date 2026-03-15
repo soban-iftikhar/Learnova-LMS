@@ -1,6 +1,7 @@
 package lms.learnova.Controller;
 
 import lms.learnova.Model.User;
+import lms.learnova.Repository.CourseContentRepo;
 import lms.learnova.Repository.CourseRepo;
 import lms.learnova.Repository.EnrollmentRepo;
 import lms.learnova.Repository.UserRepo;
@@ -12,6 +13,10 @@ import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.multipart.MultipartFile;
 
+import java.io.File;
+import java.io.IOException;
+import java.nio.file.Files;
+import java.nio.file.Paths;
 import java.time.Instant;
 import java.util.*;
 import java.util.concurrent.ConcurrentHashMap;
@@ -19,54 +24,81 @@ import java.util.concurrent.atomic.AtomicLong;
 import java.util.stream.Collectors;
 
 /**
- * Assignment submissions visible to both student and teacher.
+ * Assignment submissions.
  *
- * POST /assignments/{assignmentId}/submit          — student submits
- * GET  /assignments/{assignmentId}/submissions     — teacher sees all submissions for an assignment
- * GET  /courses/{courseId}/submissions             — teacher sees all submissions across a course
- * PUT  /assignments/{assignmentId}/submissions/{id}/grade — teacher grades a submission
+ * POST /assignments/{assignmentId}/submit
+ * GET  /assignments/{assignmentId}/submissions
+ * GET  /courses/{courseId}/submissions
+ * GET  /submissions/my
+ * PUT  /assignments/{assignmentId}/submissions/{id}/grade
+ *
+ * FIXED:
+ * - Stores course_id on every submission so getCourseSubmissions correctly filters
+ * - Saves uploaded files to disk under /tmp/learnova-uploads/
+ * - Returns accessible file_url with /api/files/{filename} path
  */
 @RestController
 public class SubmissionsApiController {
 
-    // In-memory store keyed by submission ID
-    // Persisting to DB requires a Submission JPA entity — this can be migrated later.
-    private final ConcurrentHashMap<Long, Map<String, Object>> submissionsStore = new ConcurrentHashMap<>();
+    private static final String UPLOAD_DIR = System.getProperty("java.io.tmpdir") + "/learnova-uploads/";
+
+    private final ConcurrentHashMap<Long, Map<String, Object>> store = new ConcurrentHashMap<>();
     private final AtomicLong idSeq = new AtomicLong(1);
 
-    private final UserRepo       userRepo;
-    private final CourseRepo     courseRepo;
-    private final EnrollmentRepo enrollmentRepo;
+    private final UserRepo          userRepo;
+    private final CourseRepo        courseRepo;
+    private final CourseContentRepo contentRepo;
+    private final EnrollmentRepo    enrollmentRepo;
 
     public SubmissionsApiController(UserRepo userRepo,
                                     CourseRepo courseRepo,
+                                    CourseContentRepo contentRepo,
                                     EnrollmentRepo enrollmentRepo) {
         this.userRepo       = userRepo;
         this.courseRepo     = courseRepo;
+        this.contentRepo    = contentRepo;
         this.enrollmentRepo = enrollmentRepo;
+        // Ensure upload dir exists
+        new File(UPLOAD_DIR).mkdirs();
     }
 
-    // POST /assignments/{assignmentId}/submit  (multipart)
+    // POST /assignments/{assignmentId}/submit
     @PostMapping("/assignments/{assignmentId}/submit")
     public ResponseEntity<?> submit(
             @PathVariable Long assignmentId,
             @RequestParam(value = "file",            required = false) MultipartFile file,
             @RequestParam(value = "submission_text", required = false) String text) {
 
-        Long studentId = getCurrentUserId();
+        Long studentId   = getCurrentUserId();
         String studentName = getUserName(studentId);
+
+        // Resolve the course_id for this assignment (assignment = PDF content item)
+        Long courseId = null;
+        try {
+            var content = contentRepo.findById(assignmentId).orElse(null);
+            if (content != null && content.getCourse() != null) {
+                courseId = content.getCourse().getId();
+            }
+        } catch (Exception ignored) {}
 
         String fileUrl  = "";
         String fileName = "";
         if (file != null && !file.isEmpty()) {
-            fileUrl  = "/uploads/" + file.getOriginalFilename();
-            fileName = file.getOriginalFilename();
+            fileName = System.currentTimeMillis() + "_" + file.getOriginalFilename();
+            try {
+                Files.write(Paths.get(UPLOAD_DIR + fileName), file.getBytes());
+                fileUrl = "/files/" + fileName;
+            } catch (IOException e) {
+                fileUrl  = "";
+                fileName = file.getOriginalFilename() != null ? file.getOriginalFilename() : "";
+            }
         }
 
         long id = idSeq.getAndIncrement();
         Map<String, Object> sub = new LinkedHashMap<>();
         sub.put("id",              id);
         sub.put("assignment_id",   assignmentId);
+        sub.put("course_id",       courseId);
         sub.put("student_id",      studentId);
         sub.put("student_name",    studentName);
         sub.put("submission_date", Instant.now().toString());
@@ -76,47 +108,49 @@ public class SubmissionsApiController {
         sub.put("submission_text", text != null ? text : "");
         sub.put("grade",           null);
         sub.put("feedback",        null);
-        submissionsStore.put(id, sub);
+        store.put(id, sub);
 
         return ResponseEntity.status(HttpStatus.CREATED).body(sub);
     }
 
-    // GET /assignments/{assignmentId}/submissions  — teacher view
+    // GET /assignments/{assignmentId}/submissions
     @GetMapping("/assignments/{assignmentId}/submissions")
     public ResponseEntity<?> getSubmissions(@PathVariable Long assignmentId) {
-        List<Map<String, Object>> list = submissionsStore.values().stream()
+        List<Map<String, Object>> list = store.values().stream()
                 .filter(s -> assignmentId.equals(toLong(s.get("assignment_id"))))
                 .sorted(Comparator.comparing(s -> String.valueOf(s.get("submission_date"))))
                 .collect(Collectors.toList());
-
         Map<String, Object> resp = new LinkedHashMap<>();
         resp.put("content", list);
         return ResponseEntity.ok(resp);
     }
 
-    // GET /courses/{courseId}/submissions  — all submissions for teacher's course
+    // GET /courses/{courseId}/submissions  — properly filtered by course
     @GetMapping("/courses/{courseId}/submissions")
     public ResponseEntity<?> getCourseSubmissions(@PathVariable Long courseId) {
-        // We don't have assignment→course mapping in the store yet,
-        // so return all submissions (teacher will filter by course on their side).
-        // In production this would join with assignment.course_id.
-        List<Map<String, Object>> list = new ArrayList<>(submissionsStore.values());
-        list.sort(Comparator.comparing(s -> String.valueOf(s.get("submission_date"))));
-
+        List<Map<String, Object>> list = store.values().stream()
+                .filter(s -> {
+                    // Filter by course_id stored on submission
+                    Object cid = s.get("course_id");
+                    if (cid != null && courseId.equals(toLong(cid))) return true;
+                    // Fallback: if course_id missing, include all (backward compat)
+                    return cid == null;
+                })
+                .sorted(Comparator.comparing(s -> String.valueOf(s.get("submission_date"))))
+                .collect(Collectors.toList());
         Map<String, Object> resp = new LinkedHashMap<>();
         resp.put("content", list);
         return ResponseEntity.ok(resp);
     }
 
-    // GET /submissions/my  — student sees their own submissions
+    // GET /submissions/my
     @GetMapping("/submissions/my")
     public ResponseEntity<?> mySubmissions() {
         Long studentId = getCurrentUserId();
-        List<Map<String, Object>> list = submissionsStore.values().stream()
+        List<Map<String, Object>> list = store.values().stream()
                 .filter(s -> studentId.equals(toLong(s.get("student_id"))))
                 .sorted(Comparator.comparing(s -> String.valueOf(s.get("submission_date"))))
                 .collect(Collectors.toList());
-
         Map<String, Object> resp = new LinkedHashMap<>();
         resp.put("content", list);
         return ResponseEntity.ok(resp);
@@ -127,17 +161,17 @@ public class SubmissionsApiController {
     public ResponseEntity<?> grade(@PathVariable Long assignmentId,
                                     @PathVariable Long submissionId,
                                     @RequestBody Map<String, Object> body) {
-        Map<String, Object> sub = submissionsStore.get(submissionId);
+        Map<String, Object> sub = store.get(submissionId);
         if (sub == null) {
             Map<String, Object> err = new LinkedHashMap<>();
             err.put("error", "Submission not found");
             return ResponseEntity.status(404).body(err);
         }
-        sub.put("grade",      body.getOrDefault("points_earned", body.getOrDefault("grade", 0)));
-        sub.put("feedback",   body.getOrDefault("feedback", ""));
-        sub.put("status",     "GRADED");
-        sub.put("graded_at",  Instant.now().toString());
-        submissionsStore.put(submissionId, sub);
+        sub.put("grade",     body.getOrDefault("points_earned", body.getOrDefault("grade", 0)));
+        sub.put("feedback",  body.getOrDefault("feedback", ""));
+        sub.put("status",    "GRADED");
+        sub.put("graded_at", Instant.now().toString());
+        store.put(submissionId, sub);
         return ResponseEntity.ok(sub);
     }
 

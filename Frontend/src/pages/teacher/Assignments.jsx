@@ -142,7 +142,15 @@ function CourseAssignmentSection({ course, onCreateClick }) {
                         <div className="flex-1 min-w-0">
                           <p className="text-xs font-semibold text-ink">{sub.student_name}</p>
                           <p className="text-xs text-gray-400">{new Date(sub.submission_date).toLocaleString()}</p>
-                          {sub.file_name && <p className="text-xs text-brand-500 flex items-center gap-1 mt-0.5"><FileText size={10} />{sub.file_name}</p>}
+                          {sub.file_name && (
+                            <div className="flex items-center gap-2 mt-0.5">
+                              <p className="text-xs text-brand-500 flex items-center gap-1"><FileText size={10} />{sub.file_name}</p>
+                              {sub.file_url && (
+                                <a href={`http://localhost:8080${sub.file_url}`} target="_blank" rel="noreferrer"
+                                  className="text-xs text-brand-600 underline hover:text-brand-700">Download</a>
+                              )}
+                            </div>
+                          )}
                         </div>
                         <div className="flex items-center gap-2">
                           {sub.status === 'GRADED' ? (

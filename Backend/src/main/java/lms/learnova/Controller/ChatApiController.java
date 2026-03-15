@@ -15,53 +15,54 @@ import java.util.concurrent.atomic.AtomicLong;
 import java.util.stream.Collectors;
 
 /**
- * Simple polling-based chat between students and teacher per course.
+ * Polling-based chat supporting:
+ * - Private channel: courseId__studentId  (teacher ↔ one student)
+ * - Broadcast channel: courseId           (teacher → all students, visible to all in course)
  *
- * GET  /chat/{courseId}/messages          — get all messages for this course
- * POST /chat/{courseId}/messages          — send a message
- * GET  /chat/{courseId}/messages?since=   — poll for new messages (timestamp)
+ * Student always reads/writes on the private channel (courseId__studentId).
+ * Teacher can read/write private channels or the broadcast channel.
+ *
+ * GET  /chat/{channelId}/messages
+ * POST /chat/{channelId}/messages
+ * GET  /chat/{channelId}/messages?since=
  */
 @RestController
 @RequestMapping("/chat")
 public class ChatApiController {
 
-    // Key: courseId → list of messages
-    private final ConcurrentHashMap<Long, List<Map<String, Object>>> chatStore = new ConcurrentHashMap<>();
+    private final ConcurrentHashMap<String, List<Map<String, Object>>> chatStore = new ConcurrentHashMap<>();
     private final AtomicLong idSeq = new AtomicLong(1);
-
     private final UserRepo userRepo;
 
     public ChatApiController(UserRepo userRepo) {
         this.userRepo = userRepo;
     }
 
-    // GET /chat/{courseId}/messages
-    @GetMapping("/{courseId}/messages")
+    @GetMapping("/{channelId}/messages")
     public ResponseEntity<?> getMessages(
-            @PathVariable Long courseId,
+            @PathVariable String channelId,
             @RequestParam(required = false) String since) {
 
-        List<Map<String, Object>> messages = chatStore.getOrDefault(courseId, new ArrayList<>());
+        List<Map<String, Object>> msgs = new ArrayList<>(
+                chatStore.getOrDefault(channelId, new ArrayList<>()));
 
-        // If a 'since' ISO timestamp is supplied, return only newer messages
         if (since != null && !since.isBlank()) {
             try {
-                Instant sinceInstant = Instant.parse(since);
-                messages = messages.stream()
-                        .filter(m -> Instant.parse(String.valueOf(m.get("timestamp"))).isAfter(sinceInstant))
+                Instant sinceI = Instant.parse(since);
+                msgs = msgs.stream()
+                        .filter(m -> Instant.parse(String.valueOf(m.get("timestamp"))).isAfter(sinceI))
                         .collect(Collectors.toList());
             } catch (Exception ignored) {}
         }
 
         Map<String, Object> resp = new LinkedHashMap<>();
-        resp.put("messages", messages);
+        resp.put("messages", msgs);
         return ResponseEntity.ok(resp);
     }
 
-    // POST /chat/{courseId}/messages
-    @PostMapping("/{courseId}/messages")
+    @PostMapping("/{channelId}/messages")
     public ResponseEntity<?> sendMessage(
-            @PathVariable Long courseId,
+            @PathVariable String channelId,
             @RequestBody Map<String, Object> body) {
 
         User sender = currentUser();
@@ -73,26 +74,24 @@ public class ChatApiController {
         }
 
         Map<String, Object> msg = new LinkedHashMap<>();
-        msg.put("id",            idSeq.getAndIncrement());
-        msg.put("course_id",     courseId);
-        msg.put("sender_id",     sender.getId());
-        msg.put("sender_name",   sender.getName());
-        msg.put("sender_role",   sender.getRole().name());
-        msg.put("text",          text);
-        msg.put("timestamp",     Instant.now().toString());
+        msg.put("id",          idSeq.getAndIncrement());
+        msg.put("channel_id",  channelId);
+        msg.put("sender_id",   sender.getId());
+        msg.put("sender_name", sender.getName());
+        msg.put("sender_role", sender.getRole().name());
+        msg.put("text",        text);
+        msg.put("timestamp",   Instant.now().toString());
 
-        chatStore.computeIfAbsent(courseId, k -> Collections.synchronizedList(new ArrayList<>())).add(msg);
-
-        // Keep last 200 messages per course to avoid unbounded growth
-        List<Map<String, Object>> msgs = chatStore.get(courseId);
-        if (msgs.size() > 200) {
-            chatStore.put(courseId, msgs.subList(msgs.size() - 200, msgs.size()));
+        List<Map<String, Object>> list =
+                chatStore.computeIfAbsent(channelId, k -> Collections.synchronizedList(new ArrayList<>()));
+        list.add(msg);
+        if (list.size() > 500) {
+            chatStore.put(channelId, list.subList(list.size() - 500, list.size()));
         }
 
         return ResponseEntity.ok(msg);
     }
 
-    // ─── Helper ───────────────────────────────────────────────────────────────
     private User currentUser() {
         Authentication auth = SecurityContextHolder.getContext().getAuthentication();
         if (auth == null) throw new UnauthorizedException("Not authenticated");

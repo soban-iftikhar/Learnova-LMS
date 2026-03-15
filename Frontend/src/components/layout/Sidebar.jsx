@@ -3,7 +3,7 @@ import { Link, useLocation, useNavigate } from 'react-router-dom'
 import {
   LayoutDashboard, BookOpen, ClipboardList, BarChart2,
   Settings, LogOut, Users, GraduationCap, ShieldCheck,
-  CalendarCheck, UserCog, Search,
+  CalendarCheck, UserCog, Search, MessageCircle, ClipboardCheck,
 } from 'lucide-react'
 import { useAuth, getHomePath } from '../../context/AuthContext'
 import Avatar from '../common/Avatar'
@@ -18,7 +18,7 @@ const NAV_BY_ROLE = {
       { to: '/assignments', label: 'Assignments', icon: ClipboardList },
     ]},
     { group: 'Progress', items: [
-      { to: '/progress', label: 'Analytics', icon: BarChart2 },
+      { to: '/progress', label: 'Progress', icon: BarChart2 },
     ]},
     { group: 'Account', items: [
       { to: '/settings', label: 'Settings', icon: Settings },
@@ -26,24 +26,15 @@ const NAV_BY_ROLE = {
   ],
   INSTRUCTOR: [
     { group: 'Teaching', items: [
-      { to: '/teacher/dashboard',   label: 'Dashboard',   icon: LayoutDashboard },
-      { to: '/teacher/courses',     label: 'My Courses',  icon: BookOpen },
-      { to: '/teacher/assignments', label: 'Assignments', icon: ClipboardList },
-      { to: '/teacher/attendance',  label: 'Attendance',  icon: CalendarCheck },
+      { to: '/teacher/dashboard',   label: 'Dashboard',    icon: LayoutDashboard },
+      { to: '/teacher/courses',     label: 'My Courses',   icon: BookOpen },
+      { to: '/teacher/quizzes',     label: 'Quizzes',      icon: ClipboardCheck },
+      { to: '/teacher/assignments', label: 'Assignments',  icon: ClipboardList },
+      { to: '/teacher/attendance',  label: 'Attendance',   icon: CalendarCheck },
+      { to: '/teacher/chat',        label: 'Student Chat', icon: MessageCircle },
     ]},
     { group: 'Account', items: [
       { to: '/teacher/settings', label: 'Settings', icon: Settings },
-    ]},
-  ],
-  ADMIN: [
-    { group: 'Management', items: [
-      { to: '/admin/dashboard',   label: 'Dashboard',   icon: ShieldCheck },
-      { to: '/admin/students',    label: 'Students',    icon: GraduationCap },
-      { to: '/admin/instructors', label: 'Instructors', icon: Users },
-      { to: '/admin/courses',     label: 'Courses',     icon: BookOpen },
-    ]},
-    { group: 'Account', items: [
-      { to: '/admin/settings', label: 'Settings', icon: UserCog },
     ]},
   ],
 }
