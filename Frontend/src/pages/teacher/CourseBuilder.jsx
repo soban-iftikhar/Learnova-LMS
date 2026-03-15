@@ -37,7 +37,7 @@ export default function CourseBuilder() {
       {/* Header */}
       <div className="flex items-center gap-4">
         <button onClick={() => navigate('/teacher/courses')}
-          className="p-2 rounded-xl text-gray-400 hover:text-ink dark:hover:text-white hover:bg-surface-muted dark:hover:bg-gray-800 transition-colors">
+          className="p-2 rounded-xl text-gray-400 hover:text-ink hover:bg-surface-muted transition-colors">
           <ArrowLeft size={20} />
         </button>
         <div className="flex-1 min-w-0">
@@ -55,13 +55,13 @@ export default function CourseBuilder() {
       </div>
 
       {/* Tab bar */}
-      <div className="flex items-center gap-1 bg-surface-muted dark:bg-gray-800 rounded-xl p-1 w-fit">
+      <div className="flex items-center gap-1 bg-surface-muted rounded-xl p-1 w-fit">
         {TABS.map(({ id, label, icon: Icon }) => (
           <button key={id} onClick={() => setTab(id)}
             className={`flex items-center gap-2 px-4 py-2 text-sm font-medium rounded-lg transition-all
               ${tab === id
-                ? 'bg-white dark:bg-gray-900 text-ink dark:text-white shadow-sm'
-                : 'text-gray-400 hover:text-ink dark:hover:text-white'}`}>
+                ? 'bg-white text-ink shadow-sm'
+                : 'text-gray-400 hover:text-ink'}`}>
             <Icon size={15} />{label}
           </button>
         ))}
@@ -137,11 +137,11 @@ function LecturesTab({ courseId }) {
         <div className="space-y-3">
           {videos.map((v, i) => (
             <div key={v.id} className="card p-4 flex items-center gap-4 hover:shadow-card-hover transition-shadow">
-              <div className="w-10 h-10 rounded-xl bg-brand-50 dark:bg-brand-900/30 flex items-center justify-center flex-shrink-0 font-bold text-brand-600 text-sm">
+              <div className="w-10 h-10 rounded-xl bg-brand-50 flex items-center justify-center flex-shrink-0 font-bold text-brand-600 text-sm">
                 {i + 1}
               </div>
               <div className="flex-1 min-w-0">
-                <p className="text-sm font-semibold text-ink dark:text-white">{v.title}</p>
+                <p className="text-sm font-semibold text-ink">{v.title}</p>
                 <p className="text-xs text-gray-400 mt-0.5 truncate">{v.video_url}</p>
                 {v.duration_minutes > 0 && (
                   <span className="text-xs text-gray-400 flex items-center gap-1 mt-1">
@@ -151,11 +151,11 @@ function LecturesTab({ courseId }) {
               </div>
               <div className="flex items-center gap-1">
                 <button onClick={() => openEdit(v)}
-                  className="p-1.5 rounded-lg text-gray-400 hover:text-brand-500 hover:bg-brand-50 dark:hover:bg-brand-900/20 transition-colors">
+                  className="p-1.5 rounded-lg text-gray-400 hover:text-brand-500 hover:bg-brand-50 transition-colors">
                   <Edit3 size={15} />
                 </button>
                 <button onClick={() => handleDelete(v.id)}
-                  className="p-1.5 rounded-lg text-gray-400 hover:text-red-500 hover:bg-red-50 dark:hover:bg-red-900/20 transition-colors">
+                  className="p-1.5 rounded-lg text-gray-400 hover:text-red-500 hover:bg-red-50 transition-colors">
                   <Trash2 size={15} />
                 </button>
               </div>
@@ -175,7 +175,7 @@ function LecturesTab({ courseId }) {
           <Input label="Duration (minutes)" type="number" min="0" placeholder="e.g., 15"
             value={form.duration_minutes} onChange={e => setForm(f => ({ ...f, duration_minutes: e.target.value }))} />
           <div className="flex flex-col gap-1.5">
-            <label className="text-sm font-medium text-ink-muted dark:text-gray-400">Description (optional)</label>
+            <label className="text-sm font-medium text-ink-muted">Description (optional)</label>
             <textarea rows={2} placeholder="What will students learn in this lecture?"
               value={form.description} onChange={e => setForm(f => ({ ...f, description: e.target.value }))}
               className="input-field resize-none" />
@@ -202,7 +202,7 @@ function QuizzesTab({ courseId }) {
 
   // FIX: use static import (quizzesApi imported at top of file), no dynamic import
   const { data: quizData, loading: qLoading, error: qError, refetch: refetchQuizzes } = useAsync(
-    () => quizzesApi.getAll(courseId),
+    () => quizManagementApi.listForCourse(courseId),
     [courseId]
   )
   const quizzes = quizData?.content || []
@@ -264,11 +264,11 @@ function QuizzesTab({ courseId }) {
           {quizzes.map(quiz => (
             <div key={quiz.id} className="card overflow-hidden">
               <div className="flex items-center gap-4 p-4">
-                <div className="w-10 h-10 rounded-xl bg-violet-50 dark:bg-violet-900/20 flex items-center justify-center flex-shrink-0">
+                <div className="w-10 h-10 rounded-xl bg-violet-50 flex items-center justify-center flex-shrink-0">
                   <ClipboardList size={18} className="text-violet-600" />
                 </div>
                 <div className="flex-1 min-w-0">
-                  <p className="text-sm font-semibold text-ink dark:text-white">{quiz.title}</p>
+                  <p className="text-sm font-semibold text-ink">{quiz.title}</p>
                   <div className="flex items-center gap-3 mt-1 text-xs text-gray-400">
                     <span className="flex items-center gap-1"><Clock size={11} />{quiz.time_limit} min</span>
                     <span>{quiz.question_count} questions</span>
@@ -280,24 +280,24 @@ function QuizzesTab({ courseId }) {
                     {quiz.is_published ? 'Published' : 'Draft'}
                   </Badge>
                   <button onClick={() => setActiveQuiz(activeQuiz?.id === quiz.id ? null : quiz)}
-                    className="p-1.5 rounded-lg text-gray-400 hover:text-brand-500 hover:bg-brand-50 dark:hover:bg-brand-900/20 transition-colors"
+                    className="p-1.5 rounded-lg text-gray-400 hover:text-brand-500 hover:bg-brand-50 transition-colors"
                     title="Manage questions">
                     <Edit3 size={15} />
                   </button>
                   <button onClick={() => handleTogglePublish(quiz)}
-                    className="p-1.5 rounded-lg text-gray-400 hover:text-green-500 hover:bg-green-50 dark:hover:bg-green-900/20 transition-colors"
+                    className="p-1.5 rounded-lg text-gray-400 hover:text-green-500 hover:bg-green-50 transition-colors"
                     title={quiz.is_published ? 'Unpublish' : 'Publish'}>
                     {quiz.is_published ? <EyeOff size={15} /> : <Eye size={15} />}
                   </button>
                   <button onClick={() => handleDeleteQuiz(quiz.id)}
-                    className="p-1.5 rounded-lg text-gray-400 hover:text-red-500 hover:bg-red-50 dark:hover:bg-red-900/20 transition-colors">
+                    className="p-1.5 rounded-lg text-gray-400 hover:text-red-500 hover:bg-red-50 transition-colors">
                     <Trash2 size={15} />
                   </button>
                 </div>
               </div>
 
               {activeQuiz?.id === quiz.id && (
-                <div className="border-t border-gray-100 dark:border-gray-800 bg-surface-muted dark:bg-gray-800/50 p-4">
+                <div className="border-t border-gray-100 bg-surface-muted p-4">
                   <QuestionsEditor quizId={quiz.id} onSaved={refetchQuizzes} />
                 </div>
               )}
@@ -311,7 +311,7 @@ function QuizzesTab({ courseId }) {
           <Input label="Quiz Title *" placeholder="e.g., Chapter 1 Assessment"
             value={quizForm.title} onChange={e => setQuizForm(f => ({ ...f, title: e.target.value }))} required />
           <div className="flex flex-col gap-1.5">
-            <label className="text-sm font-medium text-ink-muted dark:text-gray-400">Description (optional)</label>
+            <label className="text-sm font-medium text-ink-muted">Description (optional)</label>
             <textarea rows={2} placeholder="What does this quiz cover?"
               value={quizForm.description} onChange={e => setQuizForm(f => ({ ...f, description: e.target.value }))}
               className="input-field resize-none" />
@@ -377,7 +377,7 @@ function QuestionsEditor({ quizId, onSaved }) {
   return (
     <div className="space-y-3">
       <div className="flex items-center justify-between">
-        <p className="text-sm font-semibold text-ink dark:text-white">
+        <p className="text-sm font-semibold text-ink">
           {loading ? '…' : questions.length} Question{questions.length !== 1 ? 's' : ''}
         </p>
         <Button size="xs" leftIcon={<Plus size={12} />} onClick={() => setShowForm(v => !v)}>
@@ -388,33 +388,33 @@ function QuestionsEditor({ quizId, onSaved }) {
       {loading && <p className="text-xs text-gray-400 animate-pulse">Loading questions…</p>}
 
       {questions.map((q, i) => (
-        <div key={q.id} className="bg-white dark:bg-gray-900 rounded-xl p-3 flex items-start gap-3 border border-gray-100 dark:border-gray-700">
-          <span className="w-6 h-6 rounded-full bg-brand-100 dark:bg-brand-900/30 text-brand-600 dark:text-brand-400 text-xs font-bold flex items-center justify-center flex-shrink-0 mt-0.5">
+        <div key={q.id} className="bg-white rounded-xl p-3 flex items-start gap-3 border border-gray-100">
+          <span className="w-6 h-6 rounded-full bg-brand-100 text-brand-600 text-xs font-bold flex items-center justify-center flex-shrink-0 mt-0.5">
             {i + 1}
           </span>
           <div className="flex-1 min-w-0">
-            <p className="text-sm text-ink dark:text-white">{q.question_text}</p>
+            <p className="text-sm text-ink">{q.question_text}</p>
             <div className="grid grid-cols-2 gap-1 mt-2">
               {['A', 'B', 'C', 'D'].map(opt => (
                 <p key={opt} className={`text-xs px-2 py-1 rounded-lg ${q.correct_answer === opt
-                  ? 'bg-brand-50 dark:bg-brand-900/30 text-brand-700 dark:text-brand-300 font-semibold'
-                  : 'text-gray-500 dark:text-gray-400'}`}>
+                  ? 'bg-brand-50 text-brand-700 font-semibold'
+                  : 'text-gray-500'}`}>
                   {opt}: {q[`option_${opt.toLowerCase()}`]}
                 </p>
               ))}
             </div>
           </div>
           <button onClick={() => handleDelete(q.id)}
-            className="p-1 rounded-lg text-gray-300 hover:text-red-500 dark:hover:text-red-400 transition-colors flex-shrink-0">
+            className="p-1 rounded-lg text-gray-300 hover:text-red-500 transition-colors flex-shrink-0">
             <Trash2 size={14} />
           </button>
         </div>
       ))}
 
       {showForm && (
-        <form onSubmit={handleAdd} className="bg-white dark:bg-gray-900 rounded-xl p-4 space-y-3 border-2 border-brand-200 dark:border-brand-800">
+        <form onSubmit={handleAdd} className="bg-white rounded-xl p-4 space-y-3 border-2 border-brand-200">
           <div className="flex flex-col gap-1">
-            <label className="text-xs font-medium text-ink-muted dark:text-gray-400">Question *</label>
+            <label className="text-xs font-medium text-ink-muted">Question *</label>
             <textarea rows={2} placeholder="Enter your question…"
               value={form.question_text} onChange={set('question_text')}
               className="input-field text-sm resize-none" required />
@@ -422,7 +422,7 @@ function QuestionsEditor({ quizId, onSaved }) {
           <div className="grid grid-cols-2 gap-3">
             {['a', 'b', 'c', 'd'].map(opt => (
               <div key={opt} className="flex flex-col gap-1">
-                <label className="text-xs font-medium text-ink-muted dark:text-gray-400">Option {opt.toUpperCase()} *</label>
+                <label className="text-xs font-medium text-ink-muted">Option {opt.toUpperCase()} *</label>
                 <input placeholder={`Option ${opt.toUpperCase()}`}
                   value={form[`option_${opt}`]} onChange={set(`option_${opt}`)}
                   className="input-field text-sm py-2" required />
@@ -431,13 +431,13 @@ function QuestionsEditor({ quizId, onSaved }) {
           </div>
           <div className="grid grid-cols-2 gap-3">
             <div className="flex flex-col gap-1">
-              <label className="text-xs font-medium text-ink-muted dark:text-gray-400">Correct Answer *</label>
+              <label className="text-xs font-medium text-ink-muted">Correct Answer *</label>
               <select value={form.correct_answer} onChange={set('correct_answer')} className="input-field text-sm py-2">
                 {['A', 'B', 'C', 'D'].map(o => <option key={o} value={o}>{o}</option>)}
               </select>
             </div>
             <div className="flex flex-col gap-1">
-              <label className="text-xs font-medium text-ink-muted dark:text-gray-400">Marks</label>
+              <label className="text-xs font-medium text-ink-muted">Marks</label>
               <input type="number" min="1" placeholder="1"
                 value={form.marks} onChange={set('marks')} className="input-field text-sm py-2" />
             </div>
@@ -507,11 +507,11 @@ function AssignmentsTab({ courseId }) {
             return (
               <div key={a.id} className="card p-4 flex items-center gap-4">
                 <div className={`w-10 h-10 rounded-xl flex items-center justify-center flex-shrink-0
-                  ${overdue ? 'bg-red-50 dark:bg-red-900/20' : 'bg-amber-50 dark:bg-amber-900/20'}`}>
+                  ${overdue ? 'bg-red-50' : 'bg-amber-50'}`}>
                   <FileText size={18} className={overdue ? 'text-red-500' : 'text-amber-500'} />
                 </div>
                 <div className="flex-1 min-w-0">
-                  <p className="text-sm font-semibold text-ink dark:text-white">{a.title}</p>
+                  <p className="text-sm font-semibold text-ink">{a.title}</p>
                   <div className="flex items-center gap-3 mt-1 text-xs text-gray-400">
                     <span className="flex items-center gap-1">
                       <Calendar size={11} />
@@ -534,7 +534,7 @@ function AssignmentsTab({ courseId }) {
           <Input label="Title *" placeholder="e.g., Final Project Submission"
             value={form.title} onChange={set('title')} required />
           <div className="flex flex-col gap-1.5">
-            <label className="text-sm font-medium text-ink-muted dark:text-gray-400">Instructions (optional)</label>
+            <label className="text-sm font-medium text-ink-muted">Instructions (optional)</label>
             <textarea rows={3} placeholder="Describe what students should submit…"
               value={form.description} onChange={set('description')} className="input-field resize-none" />
           </div>

@@ -75,12 +75,12 @@ export default function AdminInstructors() {
       ) : (
         <div className="card overflow-hidden">
           <table className="w-full text-sm">
-            <thead className="bg-surface-muted dark:bg-gray-800/50">
+            <thead className="bg-surface-muted">
               <tr>
-                <th className="text-left py-3 px-5 font-semibold text-gray-600 dark:text-gray-300">Name</th>
-                <th className="text-left py-3 px-4 font-semibold text-gray-600 dark:text-gray-300">Email</th>
-                <th className="text-center py-3 px-4 font-semibold text-gray-600 dark:text-gray-300">Status</th>
-                <th className="text-center py-3 px-4 font-semibold text-gray-600 dark:text-gray-300">Actions</th>
+                <th className="text-left py-3 px-5 font-semibold text-gray-600">Name</th>
+                <th className="text-left py-3 px-4 font-semibold text-gray-600">Email</th>
+                <th className="text-center py-3 px-4 font-semibold text-gray-600">Status</th>
+                <th className="text-center py-3 px-4 font-semibold text-gray-600">Actions</th>
               </tr>
             </thead>
             <tbody>
@@ -88,9 +88,9 @@ export default function AdminInstructors() {
                 const suspended = inst.status === 'SUSPENDED'
                 const pending   = inst.status === 'PENDING'
                 return (
-                  <tr key={inst.id} className={`border-t border-gray-50 dark:border-gray-800 hover:bg-surface-muted dark:hover:bg-gray-800/50 transition ${suspended ? 'opacity-60' : ''}`}>
-                    <td className="py-3 px-5 font-medium text-ink dark:text-white">{inst.name}</td>
-                    <td className="py-3 px-4 text-gray-500 dark:text-gray-400">{inst.email}</td>
+                  <tr key={inst.id} className={`border-t border-gray-50 hover:bg-surface-muted transition ${suspended ? 'opacity-60' : ''}`}>
+                    <td className="py-3 px-5 font-medium text-ink">{inst.name}</td>
+                    <td className="py-3 px-4 text-gray-500">{inst.email}</td>
                     <td className="py-3 px-4 text-center">
                       <Badge
                         variant={pending ? 'warning' : suspended ? 'danger' : 'info'}
@@ -103,7 +103,7 @@ export default function AdminInstructors() {
                         {/* Approve (if pending) */}
                         {(pending || suspended) && (
                           <button onClick={() => setConfirmModal({ user: inst, action: 'activate' })}
-                            className="p-1.5 rounded-lg text-gray-400 hover:text-green-500 hover:bg-green-50 dark:hover:bg-green-900/20 transition-colors"
+                            className="p-1.5 rounded-lg text-gray-400 hover:text-green-500 hover:bg-green-50 transition-colors"
                             title="Approve / Activate">
                             <ShieldCheck size={14} />
                           </button>
@@ -111,14 +111,14 @@ export default function AdminInstructors() {
                         {/* Suspend */}
                         {!suspended && !pending && (
                           <button onClick={() => setConfirmModal({ user: inst, action: 'suspend' })}
-                            className="p-1.5 rounded-lg text-gray-400 hover:text-amber-500 hover:bg-amber-50 dark:hover:bg-amber-900/20 transition-colors"
+                            className="p-1.5 rounded-lg text-gray-400 hover:text-amber-500 hover:bg-amber-50 transition-colors"
                             title="Suspend">
                             <Ban size={14} />
                           </button>
                         )}
                         {/* Reject / Delete */}
                         <button onClick={() => setConfirmModal({ user: inst, action: 'delete' })}
-                          className="p-1.5 rounded-lg text-gray-400 hover:text-red-500 hover:bg-red-50 dark:hover:bg-red-900/20 transition-colors"
+                          className="p-1.5 rounded-lg text-gray-400 hover:text-red-500 hover:bg-red-50 transition-colors"
                           title={pending ? 'Reject' : 'Delete'}>
                           {pending ? <ShieldX size={14} /> : <Trash2 size={14} />}
                         </button>
@@ -138,7 +138,7 @@ export default function AdminInstructors() {
         size="sm">
         {confirmModal && (
           <div className="space-y-4">
-            <p className="text-sm text-gray-500 dark:text-gray-400">
+            <p className="text-sm text-gray-500">
               {confirmModal.action === 'delete'
                 ? `Remove ${confirmModal.user.name} from the platform?`
                 : confirmModal.action === 'suspend'

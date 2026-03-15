@@ -23,6 +23,11 @@ import java.util.stream.Collectors;
 
 /**
  * Full quiz management for instructors.
+ *
+ * NEW:
+ * GET  /courses/{courseId}/quizzes/manage  — ALL quizzes (draft + published) for teacher
+ *
+ * Existing:
  * POST   /courses/{courseId}/quizzes
  * PUT    /quizzes/{quizId}
  * DELETE /quizzes/{quizId}
@@ -53,7 +58,19 @@ public class QuizManagementController {
         this.quizCreationService = quizCreationService;
     }
 
-    // POST /courses/{courseId}/quizzes
+    // ── GET /courses/{courseId}/quizzes/manage  (teacher — ALL quizzes) ─────
+    @GetMapping("/courses/{courseId}/quizzes/manage")
+    public ResponseEntity<?> listForTeacher(@PathVariable Long courseId) {
+        List<Map<String, Object>> quizzes = quizRepo.findByCourseId(courseId)
+                .stream()
+                .map(this::quizToMap)
+                .collect(Collectors.toList());
+        Map<String, Object> resp = new LinkedHashMap<>();
+        resp.put("content", quizzes);
+        return ResponseEntity.ok(resp);
+    }
+
+    // ── POST /courses/{courseId}/quizzes ─────────────────────────────────────
     @PostMapping("/courses/{courseId}/quizzes")
     public ResponseEntity<?> createQuiz(@PathVariable Long courseId,
                                          @RequestBody Map<String, Object> body) {
@@ -67,7 +84,7 @@ public class QuizManagementController {
         return ResponseEntity.status(HttpStatus.CREATED).body(quizToMap(quiz));
     }
 
-    // PUT /quizzes/{quizId}
+    // ── PUT /quizzes/{quizId} ────────────────────────────────────────────────
     @PutMapping("/quizzes/{quizId}")
     public ResponseEntity<?> updateQuiz(@PathVariable Long quizId,
                                          @RequestBody Map<String, Object> body) {
@@ -81,14 +98,14 @@ public class QuizManagementController {
         return ResponseEntity.ok(quizToMap(quiz));
     }
 
-    // DELETE /quizzes/{quizId}
+    // ── DELETE /quizzes/{quizId} ─────────────────────────────────────────────
     @DeleteMapping("/quizzes/{quizId}")
     public ResponseEntity<Void> deleteQuiz(@PathVariable Long quizId) {
         quizRepo.deleteById(quizId);
         return ResponseEntity.noContent().build();
     }
 
-    // PUT /quizzes/{quizId}/publish
+    // ── PUT /quizzes/{quizId}/publish ────────────────────────────────────────
     @PutMapping("/quizzes/{quizId}/publish")
     public ResponseEntity<?> togglePublish(@PathVariable Long quizId,
                                             @RequestBody(required = false) Map<String, Object> body) {
@@ -99,14 +116,13 @@ public class QuizManagementController {
                 : !Boolean.TRUE.equals(quiz.getIsPublished());
         quiz.setIsPublished(published);
         quizRepo.save(quiz);
-
         Map<String, Object> resp = new LinkedHashMap<>();
         resp.put("published", published);
         resp.put("quiz_id",   quizId);
         return ResponseEntity.ok(resp);
     }
 
-    // GET /quizzes/{quizId}/questions
+    // ── GET /quizzes/{quizId}/questions ──────────────────────────────────────
     @GetMapping("/quizzes/{quizId}/questions")
     public ResponseEntity<?> getQuestions(@PathVariable Long quizId) {
         List<Map<String, Object>> result = questionRepo.findByQuizIdOrderByQuestionOrder(quizId)
@@ -116,7 +132,7 @@ public class QuizManagementController {
         return ResponseEntity.ok(resp);
     }
 
-    // POST /quizzes/{quizId}/questions
+    // ── POST /quizzes/{quizId}/questions ─────────────────────────────────────
     @PostMapping("/quizzes/{quizId}/questions")
     public ResponseEntity<?> addQuestion(@PathVariable Long quizId,
                                           @RequestBody Map<String, Object> body) {
@@ -125,7 +141,7 @@ public class QuizManagementController {
         return ResponseEntity.status(HttpStatus.CREATED).body(questionToMap(q));
     }
 
-    // PUT /quizzes/{quizId}/questions/{questionId}
+    // ── PUT /quizzes/{quizId}/questions/{questionId} ─────────────────────────
     @PutMapping("/quizzes/{quizId}/questions/{questionId}")
     public ResponseEntity<?> updateQuestion(@PathVariable Long quizId,
                                              @PathVariable Long questionId,
@@ -135,7 +151,7 @@ public class QuizManagementController {
         return ResponseEntity.ok(questionToMap(q));
     }
 
-    // DELETE /quizzes/{quizId}/questions/{questionId}
+    // ── DELETE /quizzes/{quizId}/questions/{questionId} ──────────────────────
     @DeleteMapping("/quizzes/{quizId}/questions/{questionId}")
     public ResponseEntity<Void> deleteQuestion(@PathVariable Long quizId,
                                                 @PathVariable Long questionId) {
@@ -156,7 +172,6 @@ public class QuizManagementController {
     private Map<String, Object> quizToMap(Quiz q) {
         long questionCount = 0;
         try { questionCount = questionRepo.countByQuizId(q.getId()); } catch (Exception ignored) {}
-
         Map<String, Object> m = new LinkedHashMap<>();
         m.put("id",             q.getId());
         m.put("title",          q.getTitle());

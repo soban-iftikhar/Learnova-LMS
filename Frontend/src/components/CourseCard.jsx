@@ -4,31 +4,44 @@ import { User, Star, Users, ArrowRight, BookOpen } from 'lucide-react'
 import ProgressBar from './common/ProgressBar'
 import Badge from './common/Badge'
 
-const PLACEHOLDER_IMAGES = [
-  'https://images.unsplash.com/photo-1516321318423-f06f85e504b3?w=400&h=200&fit=crop',
-  'https://images.unsplash.com/photo-1498050108023-c5249f4df085?w=400&h=200&fit=crop',
-  'https://images.unsplash.com/photo-1461749280684-dccba630e2f6?w=400&h=200&fit=crop',
-  'https://images.unsplash.com/photo-1555066931-4365d14bab8c?w=400&h=200&fit=crop',
-  'https://images.unsplash.com/photo-1519389950473-47ba0277781c?w=400&h=200&fit=crop',
+// Palette for courses without an image — deterministic by course ID
+const PALETTE = [
+  { bg: 'bg-brand-500',  text: 'text-white' },
+  { bg: 'bg-violet-500', text: 'text-white' },
+  { bg: 'bg-sky-500',    text: 'text-white' },
+  { bg: 'bg-amber-500',  text: 'text-white' },
+  { bg: 'bg-rose-500',   text: 'text-white' },
+  { bg: 'bg-emerald-500',text: 'text-white' },
 ]
 
-const getPlaceholder = (id) => PLACEHOLDER_IMAGES[(id || 0) % PLACEHOLDER_IMAGES.length]
+const palette = (id) => PALETTE[(id || 0) % PALETTE.length]
 
 const CourseCard = ({ course, progress, enrollmentId, compact = false }) => {
-  const imgSrc = course.image_url || getPlaceholder(course.id)
+  const hasImage = !!course.image_url
+  const p        = palette(course.id)
+  const pct      = progress ?? 0
   const instructor = course.instructor?.name || course.instructor || 'Instructor'
-  const pct = progress ?? 0
 
   return (
     <div className="card-hover group flex flex-col h-full">
-      {/* Thumbnail */}
-      <div className="relative overflow-hidden aspect-video bg-gray-100">
-        <img
-          src={imgSrc}
-          alt={course.title}
-          className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-105"
-          onError={e => { e.currentTarget.src = getPlaceholder(course.id) }}
-        />
+      {/* Thumbnail — image OR colored title block */}
+      <div className="relative overflow-hidden aspect-video">
+        {hasImage ? (
+          <img
+            src={course.image_url}
+            alt={course.title}
+            className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-105"
+            onError={e => { e.currentTarget.style.display = 'none'; e.currentTarget.nextSibling.style.display = 'flex' }}
+          />
+        ) : null}
+        {/* Colored fallback — shown when no image or img error */}
+        <div
+          className={`${p.bg} ${p.text} absolute inset-0 flex items-center justify-center p-4 ${hasImage ? 'hidden' : 'flex'}`}
+          style={{ display: hasImage ? 'none' : 'flex' }}
+        >
+          <p className="text-center font-bold text-lg leading-tight line-clamp-3">{course.title}</p>
+        </div>
+
         {course.status && course.status !== 'ACTIVE' && (
           <div className="absolute top-2 left-2">
             <Badge variant={course.status === 'DRAFT' ? 'draft' : 'archived'}>{course.status}</Badge>
@@ -56,25 +69,21 @@ const CourseCard = ({ course, progress, enrollmentId, compact = false }) => {
         )}
 
         <div className="flex items-center gap-3 text-xs text-gray-400 mb-3">
-          <span className="flex items-center gap-1">
-            <User size={12} />
-            {instructor}
+          <span className="flex items-center gap-1 truncate">
+            <User size={12} />{instructor}
           </span>
-          {course.students_count !== undefined && (
-            <span className="flex items-center gap-1">
-              <Users size={12} />
-              {course.students_count}
+          {course.students_count > 0 && (
+            <span className="flex items-center gap-1 flex-shrink-0">
+              <Users size={12} />{course.students_count}
             </span>
           )}
-          {course.rating && (
-            <span className="flex items-center gap-1 text-amber-500">
-              <Star size={12} fill="currentColor" />
-              {course.rating}
+          {course.rating > 0 && (
+            <span className="flex items-center gap-1 text-amber-500 flex-shrink-0">
+              <Star size={12} fill="currentColor" />{course.rating}
             </span>
           )}
         </div>
 
-        {/* Progress */}
         {progress !== undefined && (
           <div className="mb-4">
             <ProgressBar value={pct} showLabel size="sm" />

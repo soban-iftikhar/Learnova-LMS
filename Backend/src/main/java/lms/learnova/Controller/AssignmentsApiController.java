@@ -12,15 +12,24 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.web.bind.annotation.*;
-import org.springframework.web.multipart.MultipartFile;
 
-import java.time.Instant;
 import java.time.LocalDateTime;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.stream.Collectors;
 
+/**
+ * Assignment CRUD only.
+ *
+ * GET  /courses/{courseId}/assignments    — list assignments for a course
+ * POST /courses/{courseId}/assignments    — teacher creates an assignment
+ *
+ * NOTE: submission endpoints (POST /assignments/{id}/submit,
+ *       GET  /assignments/{id}/submissions,
+ *       PUT  /assignments/{id}/submissions/{id}/grade)
+ *       live exclusively in SubmissionsApiController to avoid duplicate mapping.
+ */
 @RestController
 public class AssignmentsApiController {
 
@@ -62,7 +71,7 @@ public class AssignmentsApiController {
         return ResponseEntity.ok(resp);
     }
 
-    // POST /courses/{courseId}/assignments
+    // POST /courses/{courseId}/assignments  — teacher creates assignment
     @PostMapping("/courses/{courseId}/assignments")
     public ResponseEntity<?> createAssignment(@PathVariable Long courseId,
                                               @RequestBody Map<String, Object> body) {
@@ -100,49 +109,7 @@ public class AssignmentsApiController {
         return ResponseEntity.status(HttpStatus.CREATED).body(resp);
     }
 
-    // POST /assignments/{assignmentId}/submit  (multipart)
-    @PostMapping("/assignments/{assignmentId}/submit")
-    public ResponseEntity<?> submitAssignment(
-            @PathVariable Long assignmentId,
-            @RequestParam(value = "file",            required = false) MultipartFile file,
-            @RequestParam(value = "submission_text", required = false) String submissionText) {
-
-        Long studentId = getCurrentUserId();
-        String fileUrl = (file != null && !file.isEmpty()) ? "/uploads/" + file.getOriginalFilename() : "";
-
-        Map<String, Object> resp = new LinkedHashMap<>();
-        resp.put("id",              System.currentTimeMillis());
-        resp.put("assignment_id",   assignmentId);
-        resp.put("student_id",      studentId);
-        resp.put("submission_date", Instant.now().toString());
-        resp.put("status",          "SUBMITTED");
-        resp.put("file_url",        fileUrl);
-        return ResponseEntity.status(HttpStatus.CREATED).body(resp);
-    }
-
-    // PUT /assignments/{assignmentId}/submissions/{submissionId}/grade
-    @PutMapping("/assignments/{assignmentId}/submissions/{submissionId}/grade")
-    public ResponseEntity<?> gradeSubmission(@PathVariable Long assignmentId,
-                                             @PathVariable Long submissionId,
-                                             @RequestBody Map<String, Object> body) {
-        Map<String, Object> resp = new LinkedHashMap<>();
-        resp.put("id",            submissionId);
-        resp.put("assignment_id", assignmentId);
-        resp.put("points_earned", body.getOrDefault("points_earned", 0));
-        resp.put("feedback",      body.getOrDefault("feedback",      ""));
-        resp.put("status",        body.getOrDefault("status",        "GRADED"));
-        resp.put("graded_date",   Instant.now().toString());
-        return ResponseEntity.ok(resp);
-    }
-
-    private Long getCurrentUserId() {
-        Authentication auth = SecurityContextHolder.getContext().getAuthentication();
-        if (auth == null) throw new UnauthorizedException("Not authenticated");
-        User user = userRepo.findByEmail(auth.getName());
-        if (user == null) throw new UnauthorizedException("User not found");
-        return user.getId();
-    }
-
+    // ─── Helpers ─────────────────────────────────────────────────────────────
     private String str(Map<String, Object> m, String key, String def) {
         Object v = m.get(key);
         return v != null ? v.toString() : def;

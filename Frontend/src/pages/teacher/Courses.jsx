@@ -40,11 +40,11 @@ export default function TeacherCourses() {
       </div>
 
       <div className="flex flex-col sm:flex-row gap-3">
-        <div className="flex items-center gap-1 bg-surface-muted dark:bg-gray-800 rounded-xl p-1">
+        <div className="flex items-center gap-1 bg-surface-muted rounded-xl p-1">
           {STATUSES.map(s => (
             <button key={s} onClick={() => setFilter(s)}
               className={`px-4 py-2 text-sm font-medium rounded-lg transition-all
-                ${filter === s ? 'bg-white dark:bg-gray-900 text-ink dark:text-white shadow-sm' : 'text-gray-400 hover:text-ink dark:hover:text-white'}`}>
+                ${filter === s ? 'bg-white text-ink shadow-sm' : 'text-gray-400 hover:text-ink'}`}>
               {s === 'all' ? 'All' : s}
             </button>
           ))}
@@ -66,21 +66,21 @@ export default function TeacherCourses() {
       ) : (
         <div className="card overflow-hidden">
           <table className="w-full text-sm">
-            <thead className="bg-surface-muted dark:bg-gray-800/50">
+            <thead className="bg-surface-muted">
               <tr>
-                <th className="text-left py-3 px-5 font-semibold text-gray-600 dark:text-gray-300">Title</th>
-                <th className="text-left py-3 px-4 font-semibold text-gray-600 dark:text-gray-300">Category</th>
-                <th className="text-center py-3 px-4 font-semibold text-gray-600 dark:text-gray-300">Students</th>
-                <th className="text-center py-3 px-4 font-semibold text-gray-600 dark:text-gray-300">Status</th>
-                <th className="text-center py-3 px-4 font-semibold text-gray-600 dark:text-gray-300">Actions</th>
+                <th className="text-left py-3 px-5 font-semibold text-gray-600">Title</th>
+                <th className="text-left py-3 px-4 font-semibold text-gray-600">Category</th>
+                <th className="text-center py-3 px-4 font-semibold text-gray-600">Students</th>
+                <th className="text-center py-3 px-4 font-semibold text-gray-600">Status</th>
+                <th className="text-center py-3 px-4 font-semibold text-gray-600">Actions</th>
               </tr>
             </thead>
             <tbody>
               {courses.map(course => (
-                <tr key={course.id} className="border-t border-gray-50 dark:border-gray-800 hover:bg-surface-muted dark:hover:bg-gray-800/50 transition">
-                  <td className="py-3 px-5 font-medium text-ink dark:text-white">{course.title}</td>
-                  <td className="py-3 px-4 text-gray-500 dark:text-gray-400">{course.category?.name || '—'}</td>
-                  <td className="py-3 px-4 text-center text-gray-700 dark:text-gray-300">{course.students_count ?? 0}</td>
+                <tr key={course.id} className="border-t border-gray-50 hover:bg-surface-muted transition">
+                  <td className="py-3 px-5 font-medium text-ink">{course.title}</td>
+                  <td className="py-3 px-4 text-gray-500">{course.category?.name || '—'}</td>
+                  <td className="py-3 px-4 text-center text-gray-700">{course.students_count ?? 0}</td>
                   <td className="py-3 px-4 text-center">
                     <Badge variant={course.status === 'ACTIVE' ? 'success' : 'draft'} dot size="sm">
                       {course.status || 'DRAFT'}
@@ -92,10 +92,10 @@ export default function TeacherCourses() {
                         className="flex items-center gap-1 text-brand-500 hover:text-brand-700 text-xs font-semibold">
                         <Settings2 size={13} />Build
                       </button>
-                      <span className="text-gray-300 dark:text-gray-600">|</span>
+                      <span className="text-gray-300">|</span>
                       <button onClick={() => navigate(`/teacher/courses/${course.id}/edit`)}
                         className="text-brand-500 hover:text-brand-700 text-xs font-semibold">Edit</button>
-                      <span className="text-gray-300 dark:text-gray-600">|</span>
+                      <span className="text-gray-300">|</span>
                       <button onClick={() => navigate(`/teacher/courses/${course.id}/analytics`)}
                         className="flex items-center gap-1 text-brand-500 hover:text-brand-700 text-xs font-semibold">
                         <BarChart2 size={13} />Stats

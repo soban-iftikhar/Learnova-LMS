@@ -2,8 +2,7 @@ import React, { useState } from 'react'
 import { CalendarCheck, Users, CheckCircle2, XCircle, MinusCircle } from 'lucide-react'
 import { coursesApi } from '../../api/courses'
 import { useAsync } from '../../hooks/index'
-import { dashboardApi } from '../../api/index'
-import apiClient from '../../api/client'
+import { dashboardApi, attendanceApi } from '../../api/index'
 import Button from '../../components/common/Button'
 import Badge from '../../components/common/Badge'
 import { useToast } from '../../components/common/Toast'
@@ -11,16 +10,16 @@ import { SectionLoader } from '../../components/common/Spinner'
 import { EmptyState, ErrorState } from '../../components/common/EmptyState'
 
 const STATUS_OPTIONS = [
-  { value: 'PRESENT', label: 'Present', icon: CheckCircle2, color: 'text-brand-500' },
-  { value: 'ABSENT',  label: 'Absent',  icon: XCircle,      color: 'text-red-500' },
-  { value: 'LATE',    label: 'Late',    icon: MinusCircle,  color: 'text-amber-500' },
+  { value: 'PRESENT', icon: CheckCircle2, color: 'text-brand-500',  bg: 'bg-brand-50'  },
+  { value: 'ABSENT',  icon: XCircle,      color: 'text-red-500',    bg: 'bg-red-50'    },
+  { value: 'LATE',    icon: MinusCircle,  color: 'text-amber-500',  bg: 'bg-amber-50'  },
 ]
 
 function CourseAttendanceSection({ course }) {
-  const toast       = useToast()
-  const today       = new Date().toISOString().split('T')[0]
+  const toast      = useToast()
+  const today      = new Date().toISOString().split('T')[0]
   const [date, setDate]       = useState(today)
-  const [records, setRecords] = useState({})   // { studentId: 'PRESENT'|'ABSENT'|'LATE' }
+  const [records, setRecords] = useState({})  // { enrollmentId: 'PRESENT'|'ABSENT'|'LATE' }
   const [saving, setSaving]   = useState(false)
 
   const { data: enrollData, loading: enrollLoading } = useAsync(
@@ -29,33 +28,31 @@ function CourseAttendanceSection({ course }) {
   )
   const students = enrollData?.content || []
 
-  const setAttendance = (studentId, status) =>
-    setRecords(r => ({ ...r, [studentId]: status }))
+  const set = (enrollmentId, status) =>
+    setRecords(r => ({ ...r, [enrollmentId]: status }))
 
   const handleSave = async () => {
     if (!students.length) return
     setSaving(true)
     try {
-      const payload = {
+      await attendanceApi.mark({
         course_id: course.id,
         date,
         records: students.map(s => ({
-          student_id: s.student.id,
-          status:     records[s.student.id] || 'PRESENT',
+          enrollment_id: s.id,
+          student_id:    s.student?.id,
+          status:        records[s.id] || 'PRESENT',
         })),
-      }
-      await apiClient.post('/attendance/mark', payload)
+      })
       toast.success(`Attendance saved for ${date}`)
     } catch (err) {
       toast.error(err?.response?.data?.error || 'Failed to save attendance.')
     } finally {
-      setSaving(false)
-    }
+      setSaving(false) }
   }
 
   return (
     <div className="card overflow-hidden">
-      {/* Header */}
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 px-5 py-4 bg-surface-muted border-b border-gray-100">
         <div className="flex items-center gap-3">
           <div className="w-8 h-8 rounded-lg bg-sky-100 flex items-center justify-center">
@@ -67,8 +64,7 @@ function CourseAttendanceSection({ course }) {
           </div>
         </div>
         <div className="flex items-center gap-3">
-          <input type="date" value={date} onChange={e => setDate(e.target.value)}
-            max={today}
+          <input type="date" value={date} onChange={e => setDate(e.target.value)} max={today}
             className="px-3 py-2 border border-gray-200 rounded-xl text-sm text-ink bg-white focus:outline-none focus:ring-2 focus:ring-brand-400" />
           <Button size="sm" loading={saving} onClick={handleSave} disabled={!students.length}>
             Save
@@ -76,35 +72,31 @@ function CourseAttendanceSection({ course }) {
         </div>
       </div>
 
-      {/* Student list */}
       {enrollLoading ? (
         <div className="p-4"><SectionLoader rows={3} /></div>
       ) : !students.length ? (
         <div className="p-8 text-center">
-          <p className="text-sm text-gray-400">No students enrolled in this course yet.</p>
+          <p className="text-sm text-gray-400">No students enrolled yet.</p>
         </div>
       ) : (
         <div className="divide-y divide-gray-50">
           {students.map(enrollment => {
             const s      = enrollment.student
-            const status = records[s.id] || 'PRESENT'
+            const status = records[enrollment.id] || 'PRESENT'
             return (
-              <div key={s.id} className="flex items-center gap-4 px-5 py-3.5 hover:bg-surface-muted transition">
+              <div key={enrollment.id} className="flex items-center gap-4 px-5 py-3.5 hover:bg-surface-muted transition">
                 <div className="w-8 h-8 rounded-full bg-brand-100 flex items-center justify-center flex-shrink-0 text-sm font-bold text-brand-700">
-                  {s.name?.[0]?.toUpperCase() || '?'}
+                  {s?.name?.[0]?.toUpperCase() || '?'}
                 </div>
                 <div className="flex-1 min-w-0">
-                  <p className="text-sm font-medium text-ink">{s.name}</p>
-                  <p className="text-xs text-gray-400">{s.email}</p>
+                  <p className="text-sm font-medium text-ink">{s?.name}</p>
+                  <p className="text-xs text-gray-400">{s?.email}</p>
                 </div>
-                {/* Status toggle buttons */}
                 <div className="flex items-center gap-1">
-                  {STATUS_OPTIONS.map(({ value, label, icon: Icon, color }) => (
-                    <button key={value} onClick={() => setAttendance(s.id, value)}
-                      title={label}
-                      className={`p-1.5 rounded-lg transition-all ${status === value
-                        ? `bg-gray-100 ${color}`
-                        : 'text-gray-300 hover:text-gray-400'}`}>
+                  {STATUS_OPTIONS.map(({ value, icon: Icon, color, bg }) => (
+                    <button key={value} onClick={() => set(enrollment.id, value)}
+                      title={value}
+                      className={`p-1.5 rounded-lg transition-all ${status === value ? `${bg} ${color}` : 'text-gray-300 hover:text-gray-400'}`}>
                       <Icon size={18} />
                     </button>
                   ))}

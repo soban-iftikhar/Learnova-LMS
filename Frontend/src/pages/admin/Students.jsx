@@ -75,21 +75,21 @@ export default function AdminStudents() {
       ) : (
         <div className="card overflow-hidden">
           <table className="w-full text-sm">
-            <thead className="bg-surface-muted dark:bg-gray-800/50">
+            <thead className="bg-surface-muted">
               <tr>
-                <th className="text-left py-3 px-5 font-semibold text-gray-600 dark:text-gray-300">Name</th>
-                <th className="text-left py-3 px-4 font-semibold text-gray-600 dark:text-gray-300">Email</th>
-                <th className="text-center py-3 px-4 font-semibold text-gray-600 dark:text-gray-300">Status</th>
-                <th className="text-center py-3 px-4 font-semibold text-gray-600 dark:text-gray-300">Actions</th>
+                <th className="text-left py-3 px-5 font-semibold text-gray-600">Name</th>
+                <th className="text-left py-3 px-4 font-semibold text-gray-600">Email</th>
+                <th className="text-center py-3 px-4 font-semibold text-gray-600">Status</th>
+                <th className="text-center py-3 px-4 font-semibold text-gray-600">Actions</th>
               </tr>
             </thead>
             <tbody>
               {students.map(student => {
                 const suspended = student.status === 'SUSPENDED'
                 return (
-                  <tr key={student.id} className={`border-t border-gray-50 dark:border-gray-800 hover:bg-surface-muted dark:hover:bg-gray-800/50 transition ${suspended ? 'opacity-60' : ''}`}>
-                    <td className="py-3 px-5 font-medium text-ink dark:text-white">{student.name}</td>
-                    <td className="py-3 px-4 text-gray-500 dark:text-gray-400">{student.email}</td>
+                  <tr key={student.id} className={`border-t border-gray-50 hover:bg-surface-muted transition ${suspended ? 'opacity-60' : ''}`}>
+                    <td className="py-3 px-5 font-medium text-ink">{student.name}</td>
+                    <td className="py-3 px-4 text-gray-500">{student.email}</td>
                     <td className="py-3 px-4 text-center">
                       <Badge variant={suspended ? 'warning' : 'success'} dot size="sm">
                         {student.status || 'ACTIVE'}
@@ -99,17 +99,17 @@ export default function AdminStudents() {
                       <div className="flex items-center justify-center gap-1">
                         {suspended ? (
                           <button onClick={() => setConfirmModal({ user: student, action: 'activate' })}
-                            className="p-1.5 rounded-lg text-gray-400 hover:text-green-500 hover:bg-green-50 dark:hover:bg-green-900/20 transition-colors" title="Reactivate">
+                            className="p-1.5 rounded-lg text-gray-400 hover:text-green-500 hover:bg-green-50 transition-colors" title="Reactivate">
                             <RefreshCw size={14} />
                           </button>
                         ) : (
                           <button onClick={() => setConfirmModal({ user: student, action: 'suspend' })}
-                            className="p-1.5 rounded-lg text-gray-400 hover:text-amber-500 hover:bg-amber-50 dark:hover:bg-amber-900/20 transition-colors" title="Suspend">
+                            className="p-1.5 rounded-lg text-gray-400 hover:text-amber-500 hover:bg-amber-50 transition-colors" title="Suspend">
                             <Ban size={14} />
                           </button>
                         )}
                         <button onClick={() => setConfirmModal({ user: student, action: 'delete' })}
-                          className="p-1.5 rounded-lg text-gray-400 hover:text-red-500 hover:bg-red-50 dark:hover:bg-red-900/20 transition-colors" title="Delete">
+                          className="p-1.5 rounded-lg text-gray-400 hover:text-red-500 hover:bg-red-50 transition-colors" title="Delete">
                           <Trash2 size={14} />
                         </button>
                       </div>
@@ -128,7 +128,7 @@ export default function AdminStudents() {
         size="sm">
         {confirmModal && (
           <div className="space-y-4">
-            <p className="text-sm text-gray-500 dark:text-gray-400">
+            <p className="text-sm text-gray-500">
               {confirmModal.action === 'delete'
                 ? `Are you sure you want to permanently delete ${confirmModal.user.name}? This cannot be undone.`
                 : confirmModal.action === 'suspend'
