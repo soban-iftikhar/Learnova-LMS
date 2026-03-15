@@ -1,29 +1,23 @@
 import React from 'react'
 import { Link } from 'react-router-dom'
-import {
-  BookOpen, CheckCircle2, Clock, ClipboardList,
-  TrendingUp, Calendar, ArrowRight, Flame, Target,
-} from 'lucide-react'
-import { useAuth } from '../context/AuthContext'
-import { dashboardApi } from '../api/index'
-import { useAsync } from '../hooks/index'
-import StatCard from '../components/StatCard'
-import CourseCard from '../components/CourseCard'
-import ProgressBar from '../components/common/ProgressBar'
-import { SectionLoader } from '../components/common/Spinner'
-import { EmptyState, ErrorState } from '../components/common/EmptyState'
-import Badge from '../components/common/Badge'
+import { BookOpen, CheckCircle2, TrendingUp, ClipboardList, ArrowRight, Target, Calendar } from 'lucide-react'
+import { useAuth } from '../../context/AuthContext'
+import { dashboardApi } from '../../api/index'
+import { useAsync } from '../../hooks/index'
+import StatCard from '../../components/StatCard'
+import ProgressBar from '../../components/common/ProgressBar'
+import { SectionLoader } from '../../components/common/Spinner'
+import { EmptyState, ErrorState } from '../../components/common/EmptyState'
+import Badge from '../../components/common/Badge'
 
 const formatDate = (str) => {
   if (!str) return ''
-  const d = new Date(str)
-  return d.toLocaleDateString('en-US', { month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit' })
+  return new Date(str).toLocaleDateString('en-US', { month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit' })
 }
 
 const daysUntil = (str) => {
   if (!str) return null
-  const diff = new Date(str) - new Date()
-  return Math.ceil(diff / (1000 * 60 * 60 * 24))
+  return Math.ceil((new Date(str) - new Date()) / 86400000)
 }
 
 const DashboardPage = () => {
@@ -48,8 +42,7 @@ const DashboardPage = () => {
           <p className="text-gray-400 mt-1 text-sm">Here's what's happening with your learning today.</p>
         </div>
         <Link to="/courses" className="btn-primary text-sm self-start">
-          <BookOpen size={16} />
-          Browse Courses
+          <BookOpen size={16} /> Browse Courses
         </Link>
       </div>
 
@@ -62,40 +55,24 @@ const DashboardPage = () => {
         <ErrorState message={error} onRetry={refetch} />
       ) : (
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 animate-slide-up">
-          <StatCard
-            label="Enrolled Courses"
-            value={data?.enrolled_courses ?? 0}
-            icon={BookOpen}
-            color="brand"
-            subtitle={`${data?.in_progress ?? 0} in progress`}
-          />
-          <StatCard
-            label="Completed"
-            value={data?.completed ?? 0}
-            icon={CheckCircle2}
-            color="sky"
-            subtitle="courses finished"
-          />
-          <StatCard
-            label="Average Grade"
+          <StatCard label="Enrolled Courses" value={data?.enrolled_courses ?? 0}
+            icon={BookOpen} color="brand" subtitle={`${data?.in_progress ?? 0} in progress`} />
+          <StatCard label="Completed" value={data?.completed ?? 0}
+            icon={CheckCircle2} color="sky" subtitle="courses finished" />
+          <StatCard label="Average Grade"
             value={data?.average_grade ? `${Math.round(data.average_grade)}%` : 'N/A'}
-            icon={TrendingUp}
-            color="violet"
-            subtitle="across all courses"
-          />
-          <StatCard
-            label="Upcoming Deadlines"
+            icon={TrendingUp} color="violet" subtitle="across all courses" />
+          <StatCard label="Upcoming Deadlines"
             value={data?.upcoming_deadlines?.length ?? 0}
             icon={ClipboardList}
             color={data?.upcoming_deadlines?.length > 0 ? 'rose' : 'brand'}
-            subtitle="assignments due soon"
-          />
+            subtitle="assignments due soon" />
         </div>
       )}
 
       {/* Main grid */}
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-        {/* Recent Courses */}
+        {/* Continue Learning */}
         <div className="lg:col-span-2 space-y-4">
           <div className="flex items-center justify-between">
             <h2 className="section-title mb-0">Continue Learning</h2>
@@ -104,24 +81,15 @@ const DashboardPage = () => {
             </Link>
           </div>
 
-          {loading ? (
-            <SectionLoader rows={3} />
-          ) : !data?.recent_courses?.length ? (
-            <EmptyState
-              icon={BookOpen}
-              title="No courses yet"
-              description="Enroll in a course to get started on your learning journey."
-              action={() => {}}
-              actionLabel="Browse Courses"
-            />
+          {loading ? <SectionLoader rows={3} />
+          : !data?.recent_courses?.length ? (
+            <EmptyState icon={BookOpen} title="No courses yet"
+              description="Enroll in a course to get started on your learning journey." />
           ) : (
             <div className="space-y-3">
               {data.recent_courses.map((course) => (
-                <Link
-                  key={course.id}
-                  to={`/courses/${course.id}`}
-                  className="card p-4 flex items-center gap-4 hover:shadow-card-hover transition-all duration-200 group"
-                >
+                <Link key={course.id} to={`/courses/${course.id}`}
+                  className="card p-4 flex items-center gap-4 hover:shadow-card-hover transition-all duration-200 group">
                   <div className="w-12 h-12 rounded-xl bg-brand-50 flex items-center justify-center flex-shrink-0 group-hover:bg-brand-500 transition-colors">
                     <BookOpen size={20} className="text-brand-500 group-hover:text-white transition-colors" />
                   </div>
@@ -129,11 +97,9 @@ const DashboardPage = () => {
                     <h3 className="text-sm font-semibold text-ink truncate group-hover:text-brand-600 transition-colors">
                       {course.title}
                     </h3>
-                    <div className="mt-1.5">
-                      <ProgressBar value={course.progress} size="xs" />
-                    </div>
+                    <div className="mt-1.5"><ProgressBar value={course.progress ?? 0} size="xs" /></div>
                     <p className="text-xs text-gray-400 mt-1">
-                      {course.progress}% complete · Last accessed {formatDate(course.latest_activity)}
+                      {course.progress ?? 0}% complete · Last accessed {formatDate(course.latest_activity)}
                     </p>
                   </div>
                   <ArrowRight size={16} className="text-gray-300 group-hover:text-brand-500 flex-shrink-0 transition-colors" />
@@ -148,9 +114,8 @@ const DashboardPage = () => {
           {/* Upcoming Deadlines */}
           <div>
             <h2 className="section-title">Upcoming Deadlines</h2>
-            {loading ? (
-              <SectionLoader rows={2} />
-            ) : !data?.upcoming_deadlines?.length ? (
+            {loading ? <SectionLoader rows={2} />
+            : !data?.upcoming_deadlines?.length ? (
               <div className="card p-6 text-center">
                 <div className="w-10 h-10 bg-brand-50 rounded-xl flex items-center justify-center mx-auto mb-2">
                   <Target size={18} className="text-brand-400" />
@@ -161,7 +126,7 @@ const DashboardPage = () => {
             ) : (
               <div className="space-y-2">
                 {data.upcoming_deadlines.map((item) => {
-                  const days = daysUntil(item.due_date)
+                  const days   = daysUntil(item.due_date)
                   const urgent = days !== null && days <= 2
                   return (
                     <div key={item.id} className="card p-4 flex items-start gap-3">
@@ -184,38 +149,17 @@ const DashboardPage = () => {
             )}
           </div>
 
-          {/* Learning streak */}
-          <div className="card p-5">
-            <div className="flex items-center gap-2 mb-3">
-              <Flame size={18} className="text-amber-500" />
-              <h3 className="text-sm font-semibold text-ink">Learning Streak</h3>
-            </div>
-            <div className="flex gap-1.5">
-              {[...Array(7)].map((_, i) => (
-                <div
-                  key={i}
-                  className={`flex-1 h-8 rounded-lg ${i < 5 ? 'bg-brand-500' : 'bg-gray-100'}`}
-                  title={`Day ${i + 1}`}
-                />
-              ))}
-            </div>
-            <p className="text-xs text-gray-400 mt-2">5 day streak — keep it up! 🔥</p>
-          </div>
-
-          {/* Quick links */}
+          {/* Quick Actions */}
           <div className="card p-5">
             <h3 className="text-sm font-semibold text-ink mb-3">Quick Actions</h3>
             <div className="space-y-1">
               {[
-                { to: '/courses', label: 'Browse all courses', icon: BookOpen },
-                { to: '/assignments', label: 'View assignments', icon: ClipboardList },
-                { to: '/progress', label: 'Check my progress', icon: TrendingUp },
+                { to: '/courses',     label: 'Browse all courses',   icon: BookOpen },
+                { to: '/assignments', label: 'View assignments',      icon: ClipboardList },
+                { to: '/progress',    label: 'Check my progress',     icon: TrendingUp },
               ].map(({ to, label, icon: Icon }) => (
-                <Link
-                  key={to}
-                  to={to}
-                  className="flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm text-gray-500 hover:text-brand-600 hover:bg-brand-50 transition-colors group"
-                >
+                <Link key={to} to={to}
+                  className="flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm text-gray-500 hover:text-brand-600 hover:bg-brand-50 transition-colors group">
                   <Icon size={15} className="group-hover:text-brand-500 transition-colors" />
                   {label}
                   <ArrowRight size={13} className="ml-auto opacity-0 group-hover:opacity-100 transition-opacity" />

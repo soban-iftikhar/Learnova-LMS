@@ -11,7 +11,6 @@ import org.springframework.security.config.annotation.web.builders.HttpSecurity;
 import org.springframework.security.config.annotation.web.configuration.EnableWebSecurity;
 import org.springframework.security.config.http.SessionCreationPolicy;
 import org.springframework.security.core.userdetails.UserDetailsService;
-import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.security.web.SecurityFilterChain;
 import org.springframework.security.web.authentication.UsernamePasswordAuthenticationFilter;
@@ -22,67 +21,72 @@ import org.springframework.web.cors.UrlBasedCorsConfigurationSource;
 import java.util.Arrays;
 import java.util.List;
 
+/**
+ * Main security configuration.
+ *
+ * PasswordEncoder is now defined in PasswordEncoderConfig (separate class).
+ * OAuth2SuccessHandler is a standalone @Component.
+ *
+ * Dependency graph (no cycles):
+ *   SecurityConfig       → JWTFilter, UserDetailsService, PasswordEncoderConfig, OAuth2SuccessHandler
+ *   OAuth2SuccessHandler → UserRepo, StudentRepo, JWTService, PasswordEncoderConfig
+ *   PasswordEncoderConfig → nothing
+ */
 @Configuration
 @EnableWebSecurity
 public class SecurityConfig {
 
-    private final JWTFilter jwtFilter;
-    private final UserDetailsService userDetailsService;
+    private final JWTFilter            jwtFilter;
+    private final UserDetailsService   userDetailsService;
+    private final OAuth2SuccessHandler oAuth2SuccessHandler;
+    private final PasswordEncoder      passwordEncoder;
 
-    public SecurityConfig(JWTFilter jwtFilter, UserDetailsService userDetailsService) {
-        this.jwtFilter = jwtFilter;
-        this.userDetailsService = userDetailsService;
+    public SecurityConfig(JWTFilter jwtFilter,
+                          UserDetailsService userDetailsService,
+                          OAuth2SuccessHandler oAuth2SuccessHandler,
+                          PasswordEncoder passwordEncoder) {
+        this.jwtFilter            = jwtFilter;
+        this.userDetailsService   = userDetailsService;
+        this.oAuth2SuccessHandler = oAuth2SuccessHandler;
+        this.passwordEncoder      = passwordEncoder;
     }
 
     @Bean
-    SecurityFilterChain securityFilterChain(HttpSecurity http) throws Exception {
+    public SecurityFilterChain securityFilterChain(HttpSecurity http) throws Exception {
         http
             .cors(Customizer.withDefaults())
             .csrf(csrf -> csrf.disable())
             .authorizeHttpRequests(req -> req
-                // New unified auth endpoints
+                .requestMatchers("/auth/register", "/auth/login", "/auth/refresh").permitAll()
                 .requestMatchers(
-                    "/auth/register",
-                    "/auth/login",
-                    "/auth/refresh"
+                    "/instructor/registerInstructor", "/instructor/login",
+                    "/student/registerStudent",       "/student/login"
                 ).permitAll()
-                // Legacy endpoints kept for backward compat
-                .requestMatchers(
-                    "/instructor/registerInstructor",
-                    "/instructor/login",
-                    "/student/registerStudent",
-                    "/student/login"
-                ).permitAll()
-                // Public course browsing (GET only)
                 .requestMatchers(org.springframework.http.HttpMethod.GET, "/courses").permitAll()
-                // Everything else requires a valid JWT
+                .requestMatchers("/login/oauth2/**", "/oauth2/**").permitAll()
                 .anyRequest().authenticated()
             )
             .sessionManagement(s -> s.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
             .authenticationProvider(authenticationProvider())
-            .addFilterBefore(jwtFilter, UsernamePasswordAuthenticationFilter.class);
+            .addFilterBefore(jwtFilter, UsernamePasswordAuthenticationFilter.class)
+            .oauth2Login(oauth2 -> oauth2
+                .successHandler(oAuth2SuccessHandler)
+            );
 
         return http.build();
     }
 
     @Bean
-    public PasswordEncoder passwordEncoder() {
-        return new BCryptPasswordEncoder(12);
-    }
-
-    @Bean
     public CorsConfigurationSource corsConfigurationSource() {
         CorsConfiguration config = new CorsConfiguration();
-        // Cover every Vite/CRA dev-server port the frontend might use
         config.setAllowedOrigins(Arrays.asList(
             "http://localhost:3000",
             "http://localhost:5173",
             "http://localhost:5174",
             "http://localhost:5175",
-            "http://localhost:5176",
-            "http://localhost:8080"
+            "http://localhost:5176"
         ));
-        config.setAllowedMethods(Arrays.asList("GET","POST","PUT","PATCH","DELETE","OPTIONS"));
+        config.setAllowedMethods(Arrays.asList("GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"));
         config.setAllowedHeaders(List.of("*"));
         config.setExposedHeaders(List.of("Authorization"));
         config.setAllowCredentials(true);
@@ -97,7 +101,7 @@ public class SecurityConfig {
     public AuthenticationProvider authenticationProvider() {
         DaoAuthenticationProvider provider = new DaoAuthenticationProvider();
         provider.setUserDetailsService(userDetailsService);
-        provider.setPasswordEncoder(passwordEncoder());
+        provider.setPasswordEncoder(passwordEncoder);  // injected from PasswordEncoderConfig
         return provider;
     }
 

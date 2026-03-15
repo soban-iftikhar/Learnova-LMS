@@ -1,23 +1,22 @@
 import React, { useState } from 'react'
-import { Link, useNavigate, useLocation } from 'react-router-dom'
+import { Link, useNavigate } from 'react-router-dom'
 import { Mail, Lock, ArrowRight } from 'lucide-react'
-import { useAuth } from '../context/AuthContext'
+import { useAuth, getHomePath } from '../context/AuthContext'
 import { useToast } from '../components/common/Toast'
 import Button from '../components/common/Button'
 import Input from '../components/common/Input'
 import Logo from '../components/common/Logo'
 
-const OAUTH_URL = `${import.meta.env.VITE_API_URL || '/api'}/auth/google`
+// Backend context-path is /api, so OAuth2 endpoint is /api/oauth2/authorization/google
+const GOOGLE_OAUTH_URL = '/api/oauth2/authorization/google'
 
 const LoginPage = () => {
   const { login } = useAuth()
-  const toast = useToast()
-  const navigate = useNavigate()
-  const location = useLocation()
-  const from = location.state?.from?.pathname || '/dashboard'
+  const toast     = useToast()
+  const navigate  = useNavigate()
 
-  const [form, setForm] = useState({ email: '', password: '' })
-  const [errors, setErrors] = useState({})
+  const [form, setForm]       = useState({ email: '', password: '' })
+  const [errors, setErrors]   = useState({})
   const [loading, setLoading] = useState(false)
 
   const validate = () => {
@@ -34,11 +33,11 @@ const LoginPage = () => {
     if (Object.keys(errs).length) { setErrors(errs); return }
     setLoading(true)
     try {
-      await login(form.email, form.password)
+      const userData = await login(form.email, form.password)
       toast.success('Welcome back!')
-      navigate(from, { replace: true })
+      navigate(getHomePath(userData.role), { replace: true })
     } catch (err) {
-      const msg = err?.response?.data?.error || 'Invalid email or password'
+      const msg = err?.response?.data?.error || err?.response?.data?.message || 'Invalid email or password'
       toast.error(msg)
     } finally {
       setLoading(false)
@@ -47,50 +46,33 @@ const LoginPage = () => {
 
   return (
     <div className="min-h-screen flex">
-      {/* Left panel */}
+      {/* Left decorative panel */}
       <div className="hidden lg:flex lg:w-1/2 bg-gradient-to-br from-brand-600 to-brand-400 relative overflow-hidden p-12 flex-col justify-between">
-        <div>
-          <Logo size="lg" linkTo="/" />
-        </div>
+        <Logo size="lg" linkTo="/" />
         <div>
           <blockquote className="text-white/90 text-2xl font-light leading-relaxed mb-6">
             "The beautiful thing about learning is that no one can take it away from you."
           </blockquote>
           <cite className="text-white/60 text-sm">— B.B. King</cite>
         </div>
-
-        {/* Decorative circles */}
         <div className="absolute -top-20 -right-20 w-80 h-80 rounded-full bg-white/5" />
         <div className="absolute top-1/3 -right-10 w-48 h-48 rounded-full bg-white/5" />
         <div className="absolute -bottom-10 right-1/4 w-64 h-64 rounded-full bg-white/5" />
-
-        {/* Stats */}
-        <div className="flex gap-8">
-          {[['10k+', 'Learners'], ['200+', 'Courses'], ['50+', 'Instructors']].map(([num, lbl]) => (
-            <div key={lbl}>
-              <p className="text-white text-2xl font-bold">{num}</p>
-              <p className="text-white/60 text-sm">{lbl}</p>
-            </div>
-          ))}
-        </div>
       </div>
 
-      {/* Right panel */}
+      {/* Right form panel */}
       <div className="flex-1 flex items-center justify-center px-4 sm:px-6 lg:px-12 py-12">
         <div className="w-full max-w-md">
-          {/* Mobile logo */}
-          <div className="lg:hidden mb-8">
-            <Logo />
-          </div>
+          <div className="lg:hidden mb-8"><Logo /></div>
 
           <div className="mb-8">
             <h1 className="text-3xl font-bold text-ink">Welcome back</h1>
-            <p className="mt-2 text-gray-400">Sign in to continue your learning journey.</p>
+            <p className="mt-2 text-gray-400">Sign in to continue your journey.</p>
           </div>
 
-          {/* Google OAuth */}
+          {/* Google OAuth — triggers Spring Boot OAuth2 flow */}
           <a
-            href={OAUTH_URL}
+            href={GOOGLE_OAUTH_URL}
             className="flex items-center justify-center gap-3 w-full px-5 py-3 border border-gray-200 rounded-xl text-sm font-medium text-ink hover:bg-surface-muted transition-colors mb-6"
           >
             <svg width="18" height="18" viewBox="0 0 18 18" fill="none">
@@ -113,32 +95,17 @@ const LoginPage = () => {
 
           <form onSubmit={handleSubmit} className="space-y-4">
             <Input
-              label="Email address"
-              type="email"
-              placeholder="you@example.com"
+              label="Email address" type="email" placeholder="you@example.com"
               leftIcon={<Mail size={16} />}
-              value={form.email}
-              onChange={e => setForm(f => ({ ...f, email: e.target.value }))}
-              error={errors.email}
-              required
+              value={form.email} onChange={e => setForm(f => ({ ...f, email: e.target.value }))}
+              error={errors.email} required
             />
             <Input
-              label="Password"
-              type="password"
-              placeholder="••••••••"
+              label="Password" type="password" placeholder="••••••••"
               leftIcon={<Lock size={16} />}
-              value={form.password}
-              onChange={e => setForm(f => ({ ...f, password: e.target.value }))}
-              error={errors.password}
-              required
+              value={form.password} onChange={e => setForm(f => ({ ...f, password: e.target.value }))}
+              error={errors.password} required
             />
-
-            <div className="flex justify-end">
-              <Link to="/forgot-password" className="text-xs text-brand-500 hover:text-brand-600 transition-colors">
-                Forgot password?
-              </Link>
-            </div>
-
             <Button type="submit" fullWidth loading={loading} size="lg" rightIcon={<ArrowRight size={18} />}>
               Sign In
             </Button>

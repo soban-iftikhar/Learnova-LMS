@@ -1,12 +1,12 @@
 import React, { useState } from 'react'
 import { Search, Filter, BookOpen, Grid3X3, List } from 'lucide-react'
-import { enrollmentsApi } from '../api/index'
-import { useAsync, useDebounce } from '../hooks/index'
-import CourseCard from '../components/CourseCard'
-import { SectionLoader } from '../components/common/Spinner'
-import { EmptyState, ErrorState } from '../components/common/EmptyState'
-import Input from '../components/common/Input'
-import Badge from '../components/common/Badge'
+import { enrollmentsApi } from '../../api/index'
+import { useAsync, useDebounce } from '../../hooks/index'
+import CourseCard from '../../components/CourseCard'
+import { SectionLoader } from '../../components/common/Spinner'
+import { EmptyState, ErrorState } from '../../components/common/EmptyState'
+import Input from '../../components/common/Input'
+import Badge from '../../components/common/Badge'
 
 const TABS = [
   { label: 'All', value: '' },

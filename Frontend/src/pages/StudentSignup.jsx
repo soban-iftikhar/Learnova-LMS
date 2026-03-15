@@ -90,7 +90,7 @@ const StudentSignup = () => {
               value={form.name}
               onChange={setField('name')}
               error={errors.name}
-              leftIcon={User}
+              leftIcon={<User size={18} />}
             />
             <Input
               type="email"
@@ -98,7 +98,7 @@ const StudentSignup = () => {
               value={form.email}
               onChange={setField('email')}
               error={errors.email}
-              leftIcon={Mail}
+              leftIcon={<Mail size={18} />}
             />
             <Input
               type="password"
@@ -106,7 +106,7 @@ const StudentSignup = () => {
               value={form.password}
               onChange={setField('password')}
               error={errors.password}
-              leftIcon={Lock}
+              leftIcon={<Lock size={18} />}
             />
             <Input
               type="password"
@@ -114,7 +114,7 @@ const StudentSignup = () => {
               value={form.confirmPassword}
               onChange={setField('confirmPassword')}
               error={errors.confirmPassword}
-              leftIcon={Lock}
+              leftIcon={<Lock size={18} />}
             />
             <Button loading={loading} type="submit" className="w-full">
               Create Student Account

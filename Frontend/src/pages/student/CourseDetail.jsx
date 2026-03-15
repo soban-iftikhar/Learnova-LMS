@@ -4,15 +4,15 @@ import {
   ArrowLeft, BookOpen, Users, Star, Clock, ChevronDown, ChevronRight,
   Play, Lock, CheckCircle2, User, Award,
 } from 'lucide-react'
-import { coursesApi } from '../api/courses'
-import { enrollmentsApi } from '../api/index'
-import { useAsync } from '../hooks/index'
-import { useToast } from '../components/common/Toast'
-import Button from '../components/common/Button'
-import ProgressBar from '../components/common/ProgressBar'
-import Badge from '../components/common/Badge'
-import { PageLoader, SectionLoader } from '../components/common/Spinner'
-import { ErrorState } from '../components/common/EmptyState'
+import { coursesApi } from '../../api/courses'
+import { enrollmentsApi } from '../../api/index'
+import { useAsync } from '../../hooks/index'
+import { useToast } from '../../components/common/Toast'
+import Button from '../../components/common/Button'
+import ProgressBar from '../../components/common/ProgressBar'
+import Badge from '../../components/common/Badge'
+import { PageLoader, SectionLoader } from '../../components/common/Spinner'
+import { ErrorState } from '../../components/common/EmptyState'
 
 const PLACEHOLDER = 'https://images.unsplash.com/photo-1516321318423-f06f85e504b3?w=800&h=400&fit=crop'
 

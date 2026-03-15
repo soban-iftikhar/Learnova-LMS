@@ -12,6 +12,7 @@ import lms.learnova.Service.JWTService;
 import lms.learnova.Service.StudentService;
 import lms.learnova.exception.ResourceNotFoundException;
 import lms.learnova.exception.UnauthorizedException;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.authentication.AuthenticationManager;
@@ -19,14 +20,19 @@ import org.springframework.security.authentication.BadCredentialsException;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.core.context.SecurityContextHolder;
+import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.web.bind.annotation.*;
 
 import java.time.Instant;
 import java.util.Map;
 
 /**
- * Unified auth controller.
- * All endpoints live under /api/auth — matching the frontend API docs.
+ * Unified auth controller — /api/auth/*
+ *
+ * Key behaviours:
+ *  - Admin login is validated against ADMIN_EMAIL / ADMIN_PASSWORD env vars (no DB row needed).
+ *  - Instructor registration accepts extra qualification / experience fields.
+ *  - Login response includes the user role so the frontend can route to the right dashboard.
  */
 @RestController
 @RequestMapping("/auth")
@@ -37,17 +43,30 @@ public class AuthController {
     private final JWTService jwtService;
     private final AuthenticationManager authenticationManager;
     private final UserRepo userRepo;
+    private final PasswordEncoder passwordEncoder;
+
+    // Admin credentials come purely from environment variables — never stored in DB
+    @Value("${ADMIN_EMAIL:admin@learnova.io}")
+    private String adminEmail;
+
+    @Value("${ADMIN_PASSWORD:admin123}")
+    private String adminPassword;
+
+    @Value("${ADMIN_NAME:Administrator}")
+    private String adminName;
 
     public AuthController(StudentService studentService,
                           InstructorService instructorService,
                           JWTService jwtService,
                           AuthenticationManager authenticationManager,
-                          UserRepo userRepo) {
+                          UserRepo userRepo,
+                          PasswordEncoder passwordEncoder) {
         this.studentService = studentService;
         this.instructorService = instructorService;
         this.jwtService = jwtService;
         this.authenticationManager = authenticationManager;
         this.userRepo = userRepo;
+        this.passwordEncoder = passwordEncoder;
     }
 
     // ─── POST /auth/register ─────────────────────────────────────────────────
@@ -60,15 +79,30 @@ public class AuthController {
             instructor.setName(req.getName());
             instructor.setEmail(req.getEmail());
             instructor.setPassword(req.getPassword());
-            instructor.setRole(Role.INSTRUCTOR);  // Explicitly set role
+            instructor.setRole(Role.INSTRUCTOR);
+
+            // Instructor-specific fields
+            if (req.getQualification() != null) {
+                try {
+                    instructor.setQualification(
+                        Instructor.Qualification.valueOf(req.getQualification().toUpperCase())
+                    );
+                } catch (IllegalArgumentException ignored) { /* keep null */ }
+            }
+            if (req.getExperience() != null) {
+                instructor.setExperience(req.getExperience());
+            }
+
             Instructor saved = instructorService.addInstructor(instructor);
             return ResponseEntity.status(HttpStatus.CREATED).body(buildUserResponse(saved));
+
         } else {
             Student student = new Student();
             student.setName(req.getName());
             student.setEmail(req.getEmail());
             student.setPassword(req.getPassword());
-            student.setRole(Role.STUDENT);  // Explicitly set role
+            student.setRole(Role.STUDENT);
+
             Student saved = studentService.addStudent(student);
             return ResponseEntity.status(HttpStatus.CREATED).body(buildUserResponse(saved));
         }
@@ -77,13 +111,34 @@ public class AuthController {
     // ─── POST /auth/login ────────────────────────────────────────────────────
     @PostMapping("/login")
     public ResponseEntity<?> login(@RequestBody LoginRequest req) {
+
+        // ── Admin shortcut: validated purely against env vars, no DB lookup ──
+        if (adminEmail.equalsIgnoreCase(req.getEmail()) &&
+                adminPassword.equals(req.getPassword())) {
+
+            String accessToken  = jwtService.generateAdminToken(adminEmail);
+            String refreshToken = jwtService.generateRefreshToken(adminEmail);
+
+            UserResponse adminUser = new UserResponse();
+            adminUser.setId(-1L);
+            adminUser.setEmail(adminEmail);
+            adminUser.setName(adminName);
+            adminUser.setRole("ADMIN");
+            adminUser.setCreated_at(Instant.now().toString());
+
+            LoginResponse response = new LoginResponse();
+            response.setAccess_token(accessToken);
+            response.setRefresh_token(refreshToken);
+            response.setUser(adminUser);
+            return ResponseEntity.ok(response);
+        }
+
+        // ── Regular user (student / instructor) ──────────────────────────────
         try {
             Authentication auth = authenticationManager.authenticate(
                     new UsernamePasswordAuthenticationToken(req.getEmail(), req.getPassword())
             );
-            if (!auth.isAuthenticated()) {
-                throw new UnauthorizedException("Authentication failed");
-            }
+            if (!auth.isAuthenticated()) throw new UnauthorizedException("Authentication failed");
         } catch (BadCredentialsException e) {
             throw new UnauthorizedException("Invalid email or password");
         }
@@ -98,7 +153,6 @@ public class AuthController {
         response.setAccess_token(accessToken);
         response.setRefresh_token(refreshToken);
         response.setUser(buildUserResponse(user));
-
         return ResponseEntity.ok(response);
     }
 
@@ -112,11 +166,7 @@ public class AuthController {
         String refreshToken = authHeader.substring(7);
         String email = jwtService.extractUsername(refreshToken);
         String newAccessToken = jwtService.generateToken(email);
-
-        return ResponseEntity.ok(Map.of(
-                "access_token", newAccessToken,
-                "token_type", "Bearer"
-        ));
+        return ResponseEntity.ok(Map.of("access_token", newAccessToken, "token_type", "Bearer"));
     }
 
     // ─── POST /auth/logout ───────────────────────────────────────────────────
@@ -130,10 +180,21 @@ public class AuthController {
     @GetMapping("/me")
     public ResponseEntity<?> getMe() {
         Authentication auth = SecurityContextHolder.getContext().getAuthentication();
-        if (auth == null || !auth.isAuthenticated()) {
-            throw new UnauthorizedException("Not authenticated");
-        }
+        if (auth == null || !auth.isAuthenticated()) throw new UnauthorizedException("Not authenticated");
+
         String email = auth.getName();
+
+        // Check if this is the env-based admin
+        if (adminEmail.equalsIgnoreCase(email)) {
+            UserResponse adminUser = new UserResponse();
+            adminUser.setId(-1L);
+            adminUser.setEmail(adminEmail);
+            adminUser.setName(adminName);
+            adminUser.setRole("ADMIN");
+            adminUser.setCreated_at(Instant.now().toString());
+            return ResponseEntity.ok(adminUser);
+        }
+
         User user = userRepo.findByEmail(email);
         if (user == null) throw new ResourceNotFoundException("User not found");
         return ResponseEntity.ok(buildUserResponse(user));
@@ -143,11 +204,8 @@ public class AuthController {
 
     private Role parseRole(String roleStr) {
         if (roleStr == null) return Role.STUDENT;
-        try {
-            return Role.valueOf(roleStr.toUpperCase());
-        } catch (IllegalArgumentException e) {
-            return Role.STUDENT;
-        }
+        try { return Role.valueOf(roleStr.toUpperCase()); }
+        catch (IllegalArgumentException e) { return Role.STUDENT; }
     }
 
     private UserResponse buildUserResponse(User user) {

@@ -1,152 +1,86 @@
-import React, { useState, useEffect } from 'react'
+import React from 'react'
 import { useNavigate } from 'react-router-dom'
+import { Users, BookOpen, GraduationCap, ShieldCheck, TrendingUp, ArrowRight } from 'lucide-react'
+import { dashboardApi } from '../../api/index'
+import { useAsync } from '../../hooks/index'
 import StatCard from '../../components/StatCard'
-import Spinner from '../../components/common/Spinner'
-import Button from '../../components/common/Button'
-import { EmptyState } from '../../components/common/EmptyState'
+import { SectionLoader } from '../../components/common/Spinner'
+import { ErrorState } from '../../components/common/EmptyState'
+import { useAuth } from '../../context/AuthContext'
 
 export default function AdminDashboard() {
   const navigate = useNavigate()
-  const [loading, setLoading] = useState(true)
-  const [stats, setStats] = useState(null)
-  const [recentActivities, setRecentActivities] = useState([])
-
-  useEffect(() => {
-    fetchDashboardData()
-  }, [])
-
-  const fetchDashboardData = async () => {
-    try {
-      setLoading(true)
-      // In real app: const res = await adminApi.getDashboard()
-      setStats({
-        total_users: 500,
-        total_students: 400,
-        total_instructors: 50,
-        total_admins: 5,
-        total_courses: 50,
-        total_enrollments: 2500,
-        active_users_today: 245,
-        system_uptime: '99.9%'
-      })
-
-      setRecentActivities([
-        { id: 1, user: 'John Doe', action: 'Registered', timestamp: '2026-03-15 10:30' },
-        { id: 2, user: 'Jane Smith', action: 'Created Course', timestamp: '2026-03-15 10:15' },
-        { id: 3, user: 'Bob Johnson', action: 'Enrolled in Course', timestamp: '2026-03-15 09:45' },
-      ])
-    } catch (error) {
-      console.error('Failed to fetch dashboard:', error)
-    } finally {
-      setLoading(false)
-    }
-  }
-
-  if (loading) return <Spinner />
+  const { user }  = useAuth()
+  const { data, loading, error, refetch } = useAsync(() => dashboardApi.getAdminDashboard())
 
   return (
-    <div>
-      <div className="mb-8">
-        <h1 className="text-3xl font-bold text-ink mb-2">Admin Dashboard</h1>
-        <p className="text-gray-500">System overview and management.</p>
+    <div className="animate-fade-in space-y-8">
+      <div>
+        <h1 className="page-title">Admin Dashboard</h1>
+        <p className="page-subtitle">System-wide overview and management.</p>
       </div>
 
-      {/* User Stats */}
-      <div className="mb-8">
-        <h2 className="text-xl font-bold text-ink mb-4">User Overview</h2>
+      {loading ? (
         <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-          <StatCard label="Total Users" value={stats?.total_users} />
-          <StatCard label="Students" value={stats?.total_students} />
-          <StatCard label="Instructors" value={stats?.total_instructors} />
-          <StatCard label="Admins" value={stats?.total_admins} />
+          {[...Array(4)].map((_, i) => <div key={i} className="h-28 bg-white rounded-2xl animate-pulse" />)}
         </div>
-      </div>
-
-      {/* Course Stats */}
-      <div className="mb-8">
-        <h2 className="text-xl font-bold text-ink mb-4">Course Overview</h2>
-        <div className="grid grid-cols-3 gap-4">
-          <StatCard label="Total Courses" value={stats?.total_courses} />
-          <StatCard label="Enrollments" value={stats?.total_enrollments} />
-          <StatCard label="Active Today" value={stats?.active_users_today} />
-        </div>
-      </div>
-
-      {/* System Status */}
-      <div className="bg-white rounded-lg shadow-sm border border-gray-100 p-6 mb-8">
-        <h2 className="text-xl font-bold text-ink mb-4">System Status</h2>
-        <div className="flex items-center justify-between">
+      ) : error ? (
+        <ErrorState message={error} onRetry={refetch} />
+      ) : (
+        <>
+          {/* User stats */}
           <div>
-            <p className="text-gray-600 mb-2">System Uptime</p>
-            <p className="text-3xl font-bold text-green-600">{stats?.system_uptime}</p>
+            <h2 className="section-title">User Overview</h2>
+            <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+              <StatCard label="Total Users"   value={data?.total_users ?? 0}
+                icon={Users} color="brand" />
+              <StatCard label="Students"      value={data?.user_breakdown?.students ?? 0}
+                icon={GraduationCap} color="sky" />
+              <StatCard label="Instructors"   value={data?.user_breakdown?.instructors ?? 0}
+                icon={BookOpen} color="violet" />
+              <StatCard label="Total Courses" value={data?.total_courses ?? 0}
+                icon={TrendingUp} color="amber" />
+            </div>
           </div>
-          <div className="text-right">
-            <p className="text-gray-600 mb-2">Status</p>
-            <p className="inline-block px-3 py-1 bg-green-100 text-green-800 rounded-full text-sm font-semibold">
-              Healthy
-            </p>
-          </div>
-        </div>
-      </div>
 
-      {/* Management Section */}
-      <div className="bg-white rounded-lg shadow-sm border border-gray-100 p-6 mb-8">
-        <h2 className="text-xl font-bold text-ink mb-4">Management</h2>
-        <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-          <Button
-            onClick={() => navigate('/admin/users')}
-            variant="secondary"
-            className="text-left h-auto py-4"
-          >
-            <div className="font-semibold text-sm">👥 Users</div>
-            <div className="text-xs text-gray-600">Manage all users</div>
-          </Button>
-          <Button
-            onClick={() => navigate('/admin/instructors')}
-            variant="secondary"
-            className="text-left h-auto py-4"
-          >
-            <div className="font-semibold text-sm">👨‍🏫 Instructors</div>
-            <div className="text-xs text-gray-600">Manage instructors</div>
-          </Button>
-          <Button
-            onClick={() => navigate('/admin/students')}
-            variant="secondary"
-            className="text-left h-auto py-4"
-          >
-            <div className="font-semibold text-sm">👨‍🎓 Students</div>
-            <div className="text-xs text-gray-600">Manage students</div>
-          </Button>
-          <Button
-            onClick={() => navigate('/admin/courses')}
-            variant="secondary"
-            className="text-left h-auto py-4"
-          >
-            <div className="font-semibold text-sm">📚 Courses</div>
-            <div className="text-xs text-gray-600">Manage courses</div>
-          </Button>
-        </div>
-      </div>
-
-      {/* Recent Activities */}
-      <div className="bg-white rounded-lg shadow-sm border border-gray-100 p-6">
-        <h2 className="text-xl font-bold text-ink mb-4">Recent Activities</h2>
-        {recentActivities.length === 0 ? (
-          <EmptyState title="No activities" description="System activities will appear here." />
-        ) : (
-          <div className="space-y-3">
-            {recentActivities.map(activity => (
-              <div key={activity.id} className="flex items-center justify-between py-2 border-b border-gray-100 last:border-b-0">
-                <div>
-                  <p className="font-medium text-gray-900">{activity.user}</p>
-                  <p className="text-sm text-gray-500">{activity.action}</p>
-                </div>
-                <span className="text-sm text-gray-400">{activity.timestamp}</span>
+          {/* Course + enrollment stats */}
+          <div>
+            <h2 className="section-title">Platform Activity</h2>
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+              <div className="card p-6">
+                <p className="text-sm text-gray-400 mb-1">Total Enrollments</p>
+                <p className="text-3xl font-bold text-ink">{data?.total_enrollments ?? 0}</p>
               </div>
-            ))}
+              <div className="card p-6">
+                <p className="text-sm text-gray-400 mb-1">Admins</p>
+                <p className="text-3xl font-bold text-ink">{data?.user_breakdown?.admins ?? 1}</p>
+                <p className="text-xs text-gray-400 mt-1">Env-based admin accounts</p>
+              </div>
+            </div>
           </div>
-        )}
-      </div>
+
+          {/* Quick nav */}
+          <div>
+            <h2 className="section-title">Quick Actions</h2>
+            <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+              {[
+                { label: 'Manage Students',    to: '/admin/students',    icon: GraduationCap, color: 'bg-sky-50 text-sky-600' },
+                { label: 'Manage Instructors', to: '/admin/instructors', icon: Users,         color: 'bg-violet-50 text-violet-600' },
+                { label: 'Manage Courses',     to: '/admin/courses',     icon: BookOpen,      color: 'bg-brand-50 text-brand-600' },
+              ].map(({ label, to, icon: Icon, color }) => (
+                <button key={to} onClick={() => navigate(to)}
+                  className="card p-5 flex items-center gap-4 hover:shadow-card-hover transition-all text-left group">
+                  <div className={`w-11 h-11 rounded-xl ${color} flex items-center justify-center flex-shrink-0`}>
+                    <Icon size={20} />
+                  </div>
+                  <span className="font-semibold text-ink text-sm">{label}</span>
+                  <ArrowRight size={16} className="ml-auto text-gray-300 group-hover:text-brand-500 transition-colors" />
+                </button>
+              ))}
+            </div>
+          </div>
+        </>
+      )}
     </div>
   )
 }

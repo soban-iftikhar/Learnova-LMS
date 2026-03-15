@@ -1,11 +1,11 @@
 import React, { useState } from 'react'
 import { User, Mail, Shield, Bell, Palette, Save } from 'lucide-react'
-import { useAuth } from '../context/AuthContext'
-import { useToast } from '../components/common/Toast'
-import Avatar from '../components/common/Avatar'
-import Input from '../components/common/Input'
-import Button from '../components/common/Button'
-import Badge from '../components/common/Badge'
+import { useAuth } from '../../context/AuthContext'
+import { useToast } from '../../components/common/Toast'
+import Avatar from '../../components/common/Avatar'
+import Input from '../../components/common/Input'
+import Button from '../../components/common/Button'
+import Badge from '../../components/common/Badge'
 
 const TABS = [
   { id: 'profile',   label: 'Profile',        icon: User },

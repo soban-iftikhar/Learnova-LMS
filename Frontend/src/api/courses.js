@@ -25,6 +25,10 @@ export const coursesApi = {
   getAssignments: (courseId) =>
     apiClient.get(`/courses/${courseId}/assignments`),
 
+  // Create an assignment for a course (sent as course content with is_assignment=true)
+  createAssignment: (courseId, data) =>
+    apiClient.post(`/courses/${courseId}/assignments`, data),
+
   getQuizzes: (courseId) =>
     apiClient.get(`/courses/${courseId}/quizzes`),
 

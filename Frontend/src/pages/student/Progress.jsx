@@ -1,11 +1,11 @@
 import React from 'react'
 import { TrendingUp, Award, BookOpen, Target, BarChart2, CheckCircle2 } from 'lucide-react'
-import { dashboardApi, enrollmentsApi } from '../api/index'
-import { useAsync } from '../hooks/index'
-import ProgressBar from '../components/common/ProgressBar'
-import StatCard from '../components/StatCard'
-import { SectionLoader } from '../components/common/Spinner'
-import { ErrorState, EmptyState } from '../components/common/EmptyState'
+import { dashboardApi, enrollmentsApi } from '../../api/index'
+import { useAsync } from '../../hooks/index'
+import ProgressBar from '../../components/common/ProgressBar'
+import StatCard from '../../components/StatCard'
+import { SectionLoader } from '../../components/common/Spinner'
+import { ErrorState, EmptyState } from '../../components/common/EmptyState'
 
 const ProgressPage = () => {
   const { data: dash, loading: dashLoading, error: dashError } = useAsync(

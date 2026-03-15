@@ -33,10 +33,19 @@ public class JWTService {
         this.refreshExpirationMs = refreshExpirationMs;
     }
 
+    /** Standard access token for students/instructors. */
     public String generateToken(String email) {
         return buildToken(new HashMap<>(), email, jwtExpirationMs);
     }
 
+    /** Admin token — embeds role=ADMIN so /auth/me can identify env-based admin. */
+    public String generateAdminToken(String email) {
+        Map<String, Object> claims = new HashMap<>();
+        claims.put("role", "ADMIN");
+        return buildToken(claims, email, jwtExpirationMs);
+    }
+
+    /** Long-lived refresh token (7 days by default). */
     public String generateRefreshToken(String email) {
         Map<String, Object> claims = new HashMap<>();
         claims.put("type", "refresh");

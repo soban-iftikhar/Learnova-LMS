@@ -1,74 +1,59 @@
-import React, { useState, useEffect } from 'react'
-import { useParams } from 'react-router-dom'
+import React from 'react'
+import { useParams, useNavigate } from 'react-router-dom'
+import { ArrowLeft, Users, CheckCircle2, TrendingUp, BarChart2 } from 'lucide-react'
+import { analyticsApi } from '../../api/index'
+import { useAsync } from '../../hooks/index'
 import StatCard from '../../components/StatCard'
-import Spinner from '../../components/common/Spinner'
-import { EmptyState } from '../../components/common/EmptyState'
+import ProgressBar from '../../components/common/ProgressBar'
+import { PageLoader } from '../../components/common/Spinner'
+import { ErrorState, EmptyState } from '../../components/common/EmptyState'
+import Button from '../../components/common/Button'
 
 export default function CourseAnalytics() {
   const { courseId } = useParams()
-  const [loading, setLoading] = useState(true)
-  const [analytics, setAnalytics] = useState(null)
+  const navigate     = useNavigate()
 
-  useEffect(() => {
-    fetchAnalytics()
-  }, [courseId])
+  const { data, loading, error, refetch } = useAsync(
+    () => analyticsApi.getCourseAnalytics(courseId),
+    [courseId]
+  )
 
-  const fetchAnalytics = async () => {
-    try {
-      setLoading(true)
-      // In real app: const res = await coursesApi.getCourseAnalytics(courseId)
-      setAnalytics({
-        course_title: 'Java Basics',
-        total_students: 45,
-        active_students: 40,
-        completion_rate: 60,
-        average_score: 78.5,
-        engagement_rate: 85,
-        student_performance: [
-          { id: 1, name: 'John Doe', progress: 75, quiz_avg: 82, assignment_avg: 80, attendance: 90 },
-          { id: 2, name: 'Jane Smith', progress: 90, quiz_avg: 88, assignment_avg: 92, attendance: 95 },
-          { id: 3, name: 'Bob Johnson', progress: 45, quiz_avg: 65, assignment_avg: 70, attendance: 70 },
-        ],
-        module_engagement: [
-          { id: 1, name: 'Module 1: Basics', completion_rate: 95, avg_time_spent: 120 },
-          { id: 2, name: 'Module 2: OOP', completion_rate: 80, avg_time_spent: 150 },
-          { id: 3, name: 'Module 3: Advanced', completion_rate: 50, avg_time_spent: 90 },
-        ]
-      })
-    } catch (error) {
-      console.error('Failed to fetch analytics:', error)
-    } finally {
-      setLoading(false)
-    }
-  }
-
-  if (loading) return <Spinner />
+  if (loading) return <PageLoader />
+  if (error)   return <ErrorState message={error} onRetry={refetch} />
 
   return (
-    <div>
-      <h1 className="text-3xl font-bold text-ink mb-2">{analytics?.course_title} - Analytics</h1>
-      <p className="text-gray-500 mb-8">Course performance and student engagement metrics.</p>
-
-      {/* Main Stats *r}
-      <div className="grid grid-cols-1 md:grid-cols-3 lg:grid-cols-5 gap-4 mb-8">
-        <StatCard label="Students" value={analytics?.total_students} />
-        <StatCard label="Active" value={analytics?.active_students} />
-        <StatCard label="Completion" value={`${analytics?.completion_rate}%`} />
-        <StatCard label="Avg Score" value={`${analytics?.average_score}%`} />
-        <StatCard label="Engagement" value={`${analytics?.engagement_rate}%`} />
+    <div className="animate-fade-in space-y-8">
+      <div className="flex items-center gap-4">
+        <button onClick={() => navigate('/teacher/courses')}
+          className="p-2 rounded-xl text-gray-400 hover:text-ink hover:bg-surface-muted transition-colors">
+          <ArrowLeft size={20} />
+        </button>
+        <div>
+          <h1 className="page-title mb-0">{data?.title || 'Course'} — Analytics</h1>
+          <p className="page-subtitle">Performance and engagement metrics.</p>
+        </div>
       </div>
 
-      {/* Student Performance */}
-      <div className="bg-white rounded-lg shadow-sm border border-gray-100 p-6 mb-8">
-        <h2 className="text-xl font-bold text-ink mb-4">Student Performance</h2>
-        {analytics?.student_performance.length === 0 ? (
-          <EmptyState title="No data" description="Student data will appear here." />
+      {/* Stats */}
+      <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+        <StatCard label="Total Students"   value={data?.total_students ?? 0}    icon={Users}        color="brand" />
+        <StatCard label="Active Students"  value={data?.active_students ?? 0}   icon={TrendingUp}   color="sky" />
+        <StatCard label="Completion Rate"  value={`${data?.completion_rate ?? 0}%`} icon={CheckCircle2} color="violet" />
+        <StatCard label="Avg Score"        value={`${data?.average_score ?? 0}%`}   icon={BarChart2}   color="amber" />
+      </div>
+
+      {/* Student performance table */}
+      <div>
+        <h2 className="section-title">Student Performance</h2>
+        {!data?.student_performance?.length ? (
+          <EmptyState icon={Users} title="No student data yet"
+            description="Performance data will appear once students start engaging." />
         ) : (
-          <div className="overflow-x-auto">
+          <div className="card overflow-hidden">
             <table className="w-full text-sm">
-              <thead>
-                <tr className="border-b border-gray-100">
-                  <th className="text-left py-3 px-4 font-semibold text-gray-600">Student</th>
+              <thead className="bg-surface-muted">
+                <tr>
+                  <th className="text-left py-3 px-5 font-semibold text-gray-600">Student</th>
                   <th className="text-center py-3 px-4 font-semibold text-gray-600">Progress</th>
                   <th className="text-center py-3 px-4 font-semibold text-gray-600">Quiz Avg</th>
                   <th className="text-center py-3 px-4 font-semibold text-gray-600">Assignment Avg</th>
@@ -76,21 +61,18 @@ export default function CourseAnalytics() {
                 </tr>
               </thead>
               <tbody>
-                {analytics?.student_performance.map(student => (
-                  <tr key={student.id} className="border-b border-gray-50 hover:bg-gray-50 transition">
-                    <td className="py-3 px-4 font-medium text-gray-900">{student.name}</td>
-                    <td className="py-3 px-4 text-center">
-                      <div className="w-full bg-gray-200 rounded-full h-2">
-                        <div
-                          className="bg-brand-500 h-2 rounded-full"
-                          style={{ width: `${student.progress}%` }}
-                        ></div>
+                {data.student_performance.map(s => (
+                  <tr key={s.student_id} className="border-t border-gray-50 hover:bg-surface-muted transition">
+                    <td className="py-3 px-5 font-medium text-ink">{s.name}</td>
+                    <td className="py-3 px-4">
+                      <div className="flex items-center gap-2">
+                        <div className="flex-1"><ProgressBar value={s.progress} size="sm" /></div>
+                        <span className="text-xs text-gray-500 w-8 text-right">{s.progress}%</span>
                       </div>
-                      <span className="text-xs text-gray-600">{student.progress}%</span>
                     </td>
-                    <td className="py-3 px-4 text-center text-gray-900 font-medium">{student.quiz_avg}%</td>
-                    <td className="py-3 px-4 text-center text-gray-900 font-medium">{student.assignment_avg}%</td>
-                    <td className="py-3 px-4 text-center text-gray-900 font-medium">{student.attendance}%</td>
+                    <td className="py-3 px-4 text-center text-gray-700">{s.quiz_average}%</td>
+                    <td className="py-3 px-4 text-center text-gray-700">{s.assignment_average}%</td>
+                    <td className="py-3 px-4 text-center text-gray-700">{s.attendance_percentage}%</td>
                   </tr>
                 ))}
               </tbody>
@@ -99,33 +81,26 @@ export default function CourseAnalytics() {
         )}
       </div>
 
-      {/* Module Engagement */}
-      <div className="bg-white rounded-lg shadow-sm border border-gray-100 p-6">
-        <h2 className="text-xl font-bold text-ink mb-4">Module Engagement</h2>
-        {analytics?.module_engagement.length === 0 ? (
-          <EmptyState title="No data" description="Module data will appear here." />
-        ) : (
-          <div className="space-y-4">
-            {analytics?.module_engagement.map(module => (
-              <div key={module.id} className="border border-gray-100 rounded-lg p-4">
-                <div className="flex justify-between items-start mb-2">
-                  <div>
-                    <h3 className="font-semibold text-gray-900">{module.name}</h3>
-                    <p className="text-sm text-gray-500">Avg time spent: {module.avg_time_spent} minutes</p>
-                  </div>
-                  <span className="text-sm font-semibold text-brand-500">{module.completion_rate}%</span>
+      {/* Module engagement */}
+      {data?.module_engagement?.length > 0 && (
+        <div>
+          <h2 className="section-title">Module Engagement</h2>
+          <div className="space-y-3">
+            {data.module_engagement.map(mod => (
+              <div key={mod.module_id} className="card p-5">
+                <div className="flex items-center justify-between mb-2">
+                  <p className="text-sm font-semibold text-ink">{mod.title}</p>
+                  <span className="text-sm font-bold text-brand-600">{mod.completion_rate}%</span>
                 </div>
-                <div className="w-full bg-gray-200 rounded-full h-2">
-                  <div
-                    className="bg-brand-500 h-2 rounded-full"
-                    style={{ width: `${module.completion_rate}%` }}
-                  ></div>
-                </div>
+                <ProgressBar value={mod.completion_rate} size="sm" />
+                <p className="text-xs text-gray-400 mt-1.5">
+                  Avg time spent: {mod.average_time_spent} min
+                </p>
               </div>
             ))}
           </div>
-        )}
-      </div>
+        </div>
+      )}
     </div>
   )
 }

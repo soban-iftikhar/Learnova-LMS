@@ -1,83 +1,73 @@
-import React, { useState, useEffect } from 'react'
-import Button from '../../components/common/Button'
+import React, { useState } from 'react'
+import { Search, BookOpen } from 'lucide-react'
+import { coursesApi } from '../../api/courses'
+import { useAsync, useDebounce } from '../../hooks/index'
 import Input from '../../components/common/Input'
-import Spinner from '../../components/common/Spinner'
-import { EmptyState } from '../../components/common/EmptyState'
+import Badge from '../../components/common/Badge'
+import { SectionLoader } from '../../components/common/Spinner'
+import { EmptyState, ErrorState } from '../../components/common/EmptyState'
 
 export default function AdminCourses() {
-  const [loading, setLoading] = useState(true)
-  const [courses, setCourses] = useState([])
   const [search, setSearch] = useState('')
+  const debounced = useDebounce(search, 300)
 
-  useEffect(() => {
-    fetchCourses()
-  }, [])
-
-  const fetchCourses = async () => {
-    try {
-      setLoading(true)
-      // In real app: const res = await adminApi.getCourses()
-      setCourses([
-        { id: 1, title: 'Java Basics', instructor: 'Jane Smith', students: 45, status: 'ACTIVE' },
-        { id: 2, title: 'Web Development', instructor: 'Mike Brown', students: 38, status: 'ACTIVE' },
-        { id: 3, title: 'React Advanced', instructor: 'Sarah Lee', students: 25, status: 'ACTIVE' },
-      ])
-    } catch (error) {
-      console.error('Failed to fetch courses:', error)
-    } finally {
-      setLoading(false)
-    }
-  }
-
-  const filteredCourses = courses.filter(c =>
-    c.title.toLowerCase().includes(search.toLowerCase()) ||
-    c.instructor.toLowerCase().includes(search.toLowerCase())
+  const { data, loading, error, refetch } = useAsync(
+    () => coursesApi.getAll({ size: 100 }),
+    []
   )
 
-  if (loading) return <Spinner />
+  const courses = (data?.content || []).filter(c =>
+    !debounced ||
+    c.title?.toLowerCase().includes(debounced.toLowerCase()) ||
+    c.instructor?.name?.toLowerCase().includes(debounced.toLowerCase())
+  )
 
   return (
-    <div>
-      <h1 className="text-3xl font-bold text-ink mb-2">Manage Courses</h1>
-      <p className="text-gray-500 mb-8">View and manage all courses on the platform.</p>
-
-      <div className="mb-6">
-        <Input
-          placeholder="Search courses..."
-          value={search}
-          onChange={(e) => setSearch(e.target.value)}
-        />
+    <div className="animate-fade-in space-y-6">
+      <div>
+        <h1 className="page-title">Manage Courses</h1>
+        <p className="page-subtitle">View and oversee all courses on the platform.</p>
       </div>
 
-      {filteredCourses.length === 0 ? (
-        <EmptyState title={search ? 'No results' : 'No courses'} />
+      <div className="max-w-sm">
+        <Input placeholder="Search by title or instructor…" leftIcon={<Search size={16} />}
+          value={search} onChange={e => setSearch(e.target.value)} className="py-2" />
+      </div>
+
+      {loading ? <SectionLoader rows={5} />
+      : error ? <ErrorState message={error} onRetry={refetch} />
+      : !courses.length ? (
+        <EmptyState icon={BookOpen}
+          title={search ? 'No matching courses' : 'No courses yet'}
+          description={search ? 'Try a different search.' : 'Courses will appear here once instructors create them.'} />
       ) : (
-        <div className="bg-white rounded-lg shadow-sm border border-gray-100 overflow-hidden">
+        <div className="card overflow-hidden">
+          <div className="px-5 py-3 bg-surface-muted border-b border-gray-100">
+            <span className="text-sm font-semibold text-gray-600">
+              {courses.length} course{courses.length !== 1 ? 's' : ''}
+            </span>
+          </div>
           <table className="w-full text-sm">
-            <thead className="bg-gray-50 border-b border-gray-100">
+            <thead className="bg-surface-muted border-b border-gray-100">
               <tr>
-                <th className="text-left py-3 px-4 font-semibold text-gray-700">Title</th>
-                <th className="text-left py-3 px-4 font-semibold text-gray-700">Instructor</th>
-                <th className="text-center py-3 px-4 font-semibold text-gray-700">Students</th>
-                <th className="text-center py-3 px-4 font-semibold text-gray-700">Status</th>
-                <th className="text-center py-3 px-4 font-semibold text-gray-700">Actions</th>
+                <th className="text-left py-3 px-5 font-semibold text-gray-600">Title</th>
+                <th className="text-left py-3 px-4 font-semibold text-gray-600">Instructor</th>
+                <th className="text-left py-3 px-4 font-semibold text-gray-600">Category</th>
+                <th className="text-center py-3 px-4 font-semibold text-gray-600">Students</th>
+                <th className="text-center py-3 px-4 font-semibold text-gray-600">Status</th>
               </tr>
             </thead>
             <tbody>
-              {filteredCourses.map(course => (
-                <tr key={course.id} className="border-b border-gray-100 hover:bg-gray-50 transition">
-                  <td className="py-3 px-4 font-medium text-gray-900">{course.title}</td>
-                  <td className="py-3 px-4 text-gray-600">{course.instructor}</td>
-                  <td className="py-3 px-4 text-center text-gray-900">{course.students}</td>
+              {courses.map(course => (
+                <tr key={course.id} className="border-t border-gray-50 hover:bg-surface-muted transition">
+                  <td className="py-3 px-5 font-medium text-ink">{course.title}</td>
+                  <td className="py-3 px-4 text-gray-500">{course.instructor?.name || '—'}</td>
+                  <td className="py-3 px-4 text-gray-500">{course.category?.name || '—'}</td>
+                  <td className="py-3 px-4 text-center text-gray-700">{course.students_count ?? 0}</td>
                   <td className="py-3 px-4 text-center">
-                    <span className="px-2 py-1 bg-green-100 text-green-800 rounded text-xs font-semibold">
-                      {course.status}
-                    </span>
-                  </td>
-                  <td className="py-3 px-4 text-center">
-                    <button className="text-brand-500 hover:text-brand-700 text-sm font-medium">
-                      View
-                    </button>
+                    <Badge variant={course.status === 'ACTIVE' ? 'success' : 'draft'} dot size="sm">
+                      {course.status || 'DRAFT'}
+                    </Badge>
                   </td>
                 </tr>
               ))}

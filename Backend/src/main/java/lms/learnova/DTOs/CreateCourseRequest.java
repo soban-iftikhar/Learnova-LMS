@@ -10,8 +10,7 @@ public class CreateCourseRequest {
     private String title;
     private String description;
     private String category;
-    private Long instructorId;
-
-
+    private String image_url;
+    private String status = "DRAFT";
 }
 

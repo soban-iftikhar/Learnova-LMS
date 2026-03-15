@@ -33,9 +33,7 @@ public class CourseService {
                 .orElseThrow(() -> new ResourceNotFoundException("Course with ID " + id + " not found"));
     }
 
-    public Course addCourse(CreateCourseRequest request) {
-        Instructor instructor = instructorService.getInstructorById(request.getInstructorId());
-
+    public Course addCourse(CreateCourseRequest request, Instructor instructor) {
         Course course = new Course();
         course.setTitle(request.getTitle());
         course.setDescription(request.getDescription());

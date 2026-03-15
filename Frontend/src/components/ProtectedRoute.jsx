@@ -1,39 +1,35 @@
 import React from 'react'
 import { Navigate, useLocation } from 'react-router-dom'
-import { useAuth } from '../context/AuthContext'
+import { useAuth, getHomePath } from '../context/AuthContext'
 import { PageLoader } from './common/Spinner'
 
-// Redirects to login if not authenticated
+/**
+ * Guards authenticated routes.
+ * If allowedRoles is supplied, redirects non-matching users to their own home.
+ */
 export const ProtectedRoute = ({ children, allowedRoles = [] }) => {
   const { isAuthenticated, loading, user } = useAuth()
   const location = useLocation()
 
   if (loading) return <PageLoader />
   if (!isAuthenticated) return <Navigate to="/login" state={{ from: location }} replace />
+
   if (allowedRoles.length && !allowedRoles.includes(user?.role)) {
-    return <Navigate to="/dashboard" replace />
+    // Send the user to the correct dashboard for their role instead of a 404
+    return <Navigate to={getHomePath(user?.role)} replace />
   }
+
   return children
 }
 
-// Redirects to dashboard if already authenticated (for login/signup)
+/**
+ * Guards guest-only routes (login / signup).
+ * Redirects already-logged-in users to their role-appropriate dashboard.
+ */
 export const GuestRoute = ({ children }) => {
-  const { isAuthenticated, loading } = useAuth()
+  const { isAuthenticated, loading, user } = useAuth()
 
   if (loading) return <PageLoader />
-  if (isAuthenticated) return <Navigate to="/dashboard" replace />
-  return children
-}
-
-// Role-based guard
-export const RoleRoute = ({ children, allowedRoles = [] }) => {
-  const { isAuthenticated, loading, role } = useAuth()
-  const location = useLocation()
-
-  if (loading) return <PageLoader />
-  if (!isAuthenticated) return <Navigate to="/login" state={{ from: location }} replace />
-  if (allowedRoles.length && !allowedRoles.includes(role)) {
-    return <Navigate to="/dashboard" replace />
-  }
+  if (isAuthenticated) return <Navigate to={getHomePath(user?.role)} replace />
   return children
 }
