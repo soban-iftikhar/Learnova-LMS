@@ -7,8 +7,18 @@ export const enrollmentsApi = {
   unenroll:     (enrollmentId) => apiClient.delete(`/enrollments/${enrollmentId}`),
 }
 
+// ─── Videos ───────────────────────────────────────────────────────────────────
+export const videosApi = {
+  getAll:  (courseId) => apiClient.get(`/courses/${courseId}/videos`),
+  create:  (courseId, data) => apiClient.post(`/courses/${courseId}/videos`, data),
+  update:  (courseId, videoId, data) => apiClient.put(`/courses/${courseId}/videos/${videoId}`, data),
+  delete:  (courseId, videoId) => apiClient.delete(`/courses/${courseId}/videos/${videoId}`),
+}
+
 // ─── Assignments ──────────────────────────────────────────────────────────────
 export const assignmentsApi = {
+  getAll: (courseId) => apiClient.get(`/courses/${courseId}/assignments`),
+  create: (courseId, data) => apiClient.post(`/courses/${courseId}/assignments`, data),
   submit: (assignmentId, formData) =>
     apiClient.post(`/assignments/${assignmentId}/submit`, formData, {
       headers: { 'Content-Type': 'multipart/form-data' },
@@ -17,10 +27,29 @@ export const assignmentsApi = {
     apiClient.put(`/assignments/${assignmentId}/submissions/${submissionId}/grade`, data),
 }
 
-// ─── Quizzes ──────────────────────────────────────────────────────────────────
+// ─── Quizzes (student) ────────────────────────────────────────────────────────
 export const quizzesApi = {
-  start:  (quizId) => apiClient.post(`/quizzes/${quizId}/start`),
-  submit: (quizId, data) => apiClient.post(`/quizzes/${quizId}/submit`, data),
+  getAll:  (courseId) => apiClient.get(`/courses/${courseId}/quizzes`),
+  start:   (quizId)   => apiClient.post(`/quizzes/${quizId}/start`),
+  submit:  (quizId, data) => apiClient.post(`/quizzes/${quizId}/submit`, data),
+}
+
+// ─── Quiz Management (teacher) ────────────────────────────────────────────────
+export const quizManagementApi = {
+  create:          (courseId, data)           => apiClient.post(`/courses/${courseId}/quizzes`, data),
+  update:          (quizId, data)             => apiClient.put(`/quizzes/${quizId}`, data),
+  delete:          (quizId)                   => apiClient.delete(`/quizzes/${quizId}`),
+  togglePublish:   (quizId, published)        => apiClient.put(`/quizzes/${quizId}/publish`, { published }),
+  getQuestions:    (quizId)                   => apiClient.get(`/quizzes/${quizId}/questions`),
+  addQuestion:     (quizId, data)             => apiClient.post(`/quizzes/${quizId}/questions`, data),
+  updateQuestion:  (quizId, questionId, data) => apiClient.put(`/quizzes/${quizId}/questions/${questionId}`, data),
+  deleteQuestion:  (quizId, questionId)       => apiClient.delete(`/quizzes/${quizId}/questions/${questionId}`),
+}
+
+// ─── Ratings ──────────────────────────────────────────────────────────────────
+export const ratingsApi = {
+  submit: (courseId, data) => apiClient.post(`/courses/${courseId}/rate`, data),
+  get:    (courseId)       => apiClient.get(`/courses/${courseId}/rating`),
 }
 
 // ─── Dashboard ────────────────────────────────────────────────────────────────

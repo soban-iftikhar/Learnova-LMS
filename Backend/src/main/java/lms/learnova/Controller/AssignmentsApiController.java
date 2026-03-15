@@ -1,8 +1,6 @@
 package lms.learnova.Controller;
 
-import lms.learnova.Model.Course;
-import lms.learnova.Model.PDF;
-import lms.learnova.Model.User;
+import lms.learnova.Model.*;
 import lms.learnova.Repository.CourseContentRepo;
 import lms.learnova.Repository.CourseRepo;
 import lms.learnova.Repository.UserRepo;
@@ -18,6 +16,7 @@ import org.springframework.web.multipart.MultipartFile;
 
 import java.time.Instant;
 import java.time.LocalDateTime;
+import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.stream.Collectors;
@@ -46,25 +45,24 @@ public class AssignmentsApiController {
         List<Map<String, Object>> assignments = contentService.getCourseMaterialsAsDTO(courseId)
                 .stream()
                 .filter(m -> Boolean.TRUE.equals(m.getIsAssignment()))
-                .map(m -> Map.<String, Object>of(
-                        "id",           m.getId(),
-                        "title",        m.getTitle()       != null ? m.getTitle()       : "Assignment",
-                        "description",  m.getDescription() != null ? m.getDescription() : "",
-                        "due_date",     m.getDueDate()     != null ? m.getDueDate().toString() : "",
-                        "total_points", 100,
-                        "order",        m.getOrderIndex()  != null ? m.getOrderIndex()  : 0
-                ))
+                .map(m -> {
+                    Map<String, Object> item = new LinkedHashMap<>();
+                    item.put("id",           m.getId());
+                    item.put("title",        m.getTitle()       != null ? m.getTitle()       : "Assignment");
+                    item.put("description",  m.getDescription() != null ? m.getDescription() : "");
+                    item.put("due_date",     m.getDueDate()     != null ? m.getDueDate().toString() : "");
+                    item.put("total_points", 100);
+                    item.put("order",        m.getOrderIndex()  != null ? m.getOrderIndex()  : 0);
+                    return item;
+                })
                 .collect(Collectors.toList());
 
-        return ResponseEntity.ok(Map.of("content", assignments));
+        Map<String, Object> resp = new LinkedHashMap<>();
+        resp.put("content", assignments);
+        return ResponseEntity.ok(resp);
     }
 
-    /**
-     * POST /courses/{courseId}/assignments  — INSTRUCTOR creates an assignment.
-     *
-     * Stores it as a PDF CourseContent with isAssignment=true so it appears
-     * in student assignment lists automatically.
-     */
+    // POST /courses/{courseId}/assignments
     @PostMapping("/courses/{courseId}/assignments")
     public ResponseEntity<?> createAssignment(@PathVariable Long courseId,
                                               @RequestBody Map<String, Object> body) {
@@ -73,32 +71,33 @@ public class AssignmentsApiController {
 
         PDF pdf = new PDF();
         pdf.setCourse(course);
-        pdf.setTitle(String.valueOf(body.getOrDefault("title", "Assignment")));
-        pdf.setDescription(String.valueOf(body.getOrDefault("description", "")));
+        pdf.setTitle(str(body, "title", "Assignment"));
+        pdf.setDescription(str(body, "description", ""));
         pdf.setIsAssignment(true);
         pdf.setIsPublished(true);
         pdf.setFilePath("");
         pdf.setOrderIndex(0);
         pdf.setUploadedAt(LocalDateTime.now());
 
-        String dueDateStr = (String) body.get("due_date");
-        if (dueDateStr != null && !dueDateStr.isBlank()) {
+        String dueDateStr = str(body, "due_date", "");
+        if (!dueDateStr.isBlank()) {
             try {
-                pdf.setDueDate(LocalDateTime.parse(dueDateStr.replace("T", "T").length() == 16
-                        ? dueDateStr + ":00" : dueDateStr));
+                pdf.setDueDate(LocalDateTime.parse(
+                        dueDateStr.length() == 16 ? dueDateStr + ":00" : dueDateStr));
             } catch (Exception ignored) {}
         }
 
         contentRepo.save(pdf);
 
-        return ResponseEntity.status(HttpStatus.CREATED).body(Map.of(
-                "id",           pdf.getId(),
-                "title",        pdf.getTitle(),
-                "description",  pdf.getDescription() != null ? pdf.getDescription() : "",
-                "due_date",     pdf.getDueDate() != null ? pdf.getDueDate().toString() : "",
-                "total_points", body.getOrDefault("total_points", 100),
-                "status",       "ACTIVE"
-        ));
+        int totalPoints = toInt(body.get("total_points"), 100);
+        Map<String, Object> resp = new LinkedHashMap<>();
+        resp.put("id",           pdf.getId());
+        resp.put("title",        pdf.getTitle());
+        resp.put("description",  pdf.getDescription() != null ? pdf.getDescription() : "");
+        resp.put("due_date",     pdf.getDueDate() != null ? pdf.getDueDate().toString() : "");
+        resp.put("total_points", totalPoints);
+        resp.put("status",       "ACTIVE");
+        return ResponseEntity.status(HttpStatus.CREATED).body(resp);
     }
 
     // POST /assignments/{assignmentId}/submit  (multipart)
@@ -111,29 +110,29 @@ public class AssignmentsApiController {
         Long studentId = getCurrentUserId();
         String fileUrl = (file != null && !file.isEmpty()) ? "/uploads/" + file.getOriginalFilename() : "";
 
-        return ResponseEntity.status(HttpStatus.CREATED).body(Map.of(
-                "id",               System.currentTimeMillis(),
-                "assignment_id",    assignmentId,
-                "student_id",       studentId,
-                "submission_date",  Instant.now().toString(),
-                "status",           "SUBMITTED",
-                "file_url",         fileUrl
-        ));
+        Map<String, Object> resp = new LinkedHashMap<>();
+        resp.put("id",              System.currentTimeMillis());
+        resp.put("assignment_id",   assignmentId);
+        resp.put("student_id",      studentId);
+        resp.put("submission_date", Instant.now().toString());
+        resp.put("status",          "SUBMITTED");
+        resp.put("file_url",        fileUrl);
+        return ResponseEntity.status(HttpStatus.CREATED).body(resp);
     }
 
-    // PUT /assignments/{assignmentId}/submissions/{submissionId}/grade  (INSTRUCTOR)
+    // PUT /assignments/{assignmentId}/submissions/{submissionId}/grade
     @PutMapping("/assignments/{assignmentId}/submissions/{submissionId}/grade")
     public ResponseEntity<?> gradeSubmission(@PathVariable Long assignmentId,
                                              @PathVariable Long submissionId,
                                              @RequestBody Map<String, Object> body) {
-        return ResponseEntity.ok(Map.of(
-                "id",            submissionId,
-                "assignment_id", assignmentId,
-                "points_earned", body.getOrDefault("points_earned", 0),
-                "feedback",      body.getOrDefault("feedback", ""),
-                "status",        body.getOrDefault("status", "GRADED"),
-                "graded_date",   Instant.now().toString()
-        ));
+        Map<String, Object> resp = new LinkedHashMap<>();
+        resp.put("id",            submissionId);
+        resp.put("assignment_id", assignmentId);
+        resp.put("points_earned", body.getOrDefault("points_earned", 0));
+        resp.put("feedback",      body.getOrDefault("feedback",      ""));
+        resp.put("status",        body.getOrDefault("status",        "GRADED"));
+        resp.put("graded_date",   Instant.now().toString());
+        return ResponseEntity.ok(resp);
     }
 
     private Long getCurrentUserId() {
@@ -142,5 +141,17 @@ public class AssignmentsApiController {
         User user = userRepo.findByEmail(auth.getName());
         if (user == null) throw new UnauthorizedException("User not found");
         return user.getId();
+    }
+
+    private String str(Map<String, Object> m, String key, String def) {
+        Object v = m.get(key);
+        return v != null ? v.toString() : def;
+    }
+
+    private int toInt(Object val, int def) {
+        if (val == null)            return def;
+        if (val instanceof Integer) return (Integer) val;
+        if (val instanceof Number)  return ((Number) val).intValue();
+        try { return Integer.parseInt(val.toString()); } catch (Exception e) { return def; }
     }
 }

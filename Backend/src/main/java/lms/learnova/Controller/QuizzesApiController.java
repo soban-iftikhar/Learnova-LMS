@@ -2,6 +2,7 @@ package lms.learnova.Controller;
 
 import lms.learnova.DTOs.*;
 import lms.learnova.Model.*;
+import lms.learnova.Repository.QuizQuestionRepo;
 import lms.learnova.Repository.UserRepo;
 import lms.learnova.Service.QuizService;
 import lms.learnova.exception.UnauthorizedException;
@@ -11,26 +12,35 @@ import org.springframework.security.core.Authentication;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.web.bind.annotation.*;
 
+import java.util.ArrayList;
+import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.stream.Collectors;
 
 /**
- * /courses/{courseId}/quizzes  — GET list
+ * /courses/{courseId}/quizzes  — GET list (student-facing, published only)
  * /quizzes/{quizId}/start      — POST start attempt
  * /quizzes/{quizId}/submit     — POST submit answers
  *
- * Aligned with frontend API docs.
+ * Uses questionRepo.findByQuizIdOrderByQuestionOrder() instead of
+ * quiz.getQuestions() to avoid LazyInitializationException (open-in-view=false).
+ * Uses LinkedHashMap<String,Object> instead of Map.of() to avoid Java type
+ * inference issues with mixed value types.
  */
 @RestController
 public class QuizzesApiController {
 
-    private final QuizService quizService;
-    private final UserRepo userRepo;
+    private final QuizService      quizService;
+    private final QuizQuestionRepo questionRepo;
+    private final UserRepo         userRepo;
 
-    public QuizzesApiController(QuizService quizService, UserRepo userRepo) {
-        this.quizService = quizService;
-        this.userRepo = userRepo;
+    public QuizzesApiController(QuizService quizService,
+                                QuizQuestionRepo questionRepo,
+                                UserRepo userRepo) {
+        this.quizService  = quizService;
+        this.questionRepo = questionRepo;
+        this.userRepo     = userRepo;
     }
 
     // GET /courses/{courseId}/quizzes
@@ -38,17 +48,24 @@ public class QuizzesApiController {
     public ResponseEntity<?> getCourseQuizzes(@PathVariable Long courseId) {
         List<Map<String, Object>> quizzes = quizService.getQuizzesByCourse(courseId)
                 .stream()
-                .map(q -> Map.<String, Object>of(
-                        "id",               q.getId(),
-                        "title",            q.getTitle(),
-                        "description",      q.getDescription() != null ? q.getDescription() : "",
-                        "question_count",   q.getQuestions() != null ? q.getQuestions().size() : 0,
-                        "time_limit",       q.getTimeLimitSeconds() != null ? q.getTimeLimitSeconds() / 60 : 30,
-                        "pass_percentage",  70,
-                        "status",           Boolean.TRUE.equals(q.getIsPublished()) ? "ACTIVE" : "DRAFT"
-                ))
+                .map(q -> {
+                    long count = questionRepo.countByQuizId(q.getId());
+                    Map<String, Object> m = new LinkedHashMap<>();
+                    m.put("id",              q.getId());
+                    m.put("title",           q.getTitle());
+                    m.put("description",     q.getDescription() != null ? q.getDescription() : "");
+                    m.put("question_count",  count);
+                    m.put("time_limit",      q.getTimeLimitSeconds() != null ? q.getTimeLimitSeconds() / 60 : 30);
+                    m.put("pass_percentage", 70);
+                    m.put("max_score",       q.getMaxScore() != null ? q.getMaxScore() : 100);
+                    m.put("status",          Boolean.TRUE.equals(q.getIsPublished()) ? "ACTIVE" : "DRAFT");
+                    return m;
+                })
                 .collect(Collectors.toList());
-        return ResponseEntity.ok(Map.of("content", quizzes));
+
+        Map<String, Object> resp = new LinkedHashMap<>();
+        resp.put("content", quizzes);
+        return ResponseEntity.ok(resp);
     }
 
     // POST /quizzes/{quizId}/start
@@ -57,22 +74,32 @@ public class QuizzesApiController {
         Long studentId = getCurrentUserId();
         Quiz quiz = quizService.getQuizWithQuestions(quizId);
 
-        List<Map<String, Object>> questions = quiz.getQuestions().stream()
-                .map(q -> Map.<String, Object>of(
-                        "id",       q.getId(),
-                        "question", q.getQuestionText(),
-                        "options",  List.of(q.getOptionA(), q.getOptionB(), q.getOptionC(), q.getOptionD()),
-                        "type",     "MULTIPLE_CHOICE"
-                ))
+        List<Map<String, Object>> questions = questionRepo
+                .findByQuizIdOrderByQuestionOrder(quizId)
+                .stream()
+                .map(q -> {
+                    Map<String, Object> m = new LinkedHashMap<>();
+                    m.put("id",       q.getId());
+                    m.put("question", q.getQuestionText());
+                    List<String> opts = new ArrayList<>();
+                    opts.add(q.getOptionA());
+                    opts.add(q.getOptionB());
+                    opts.add(q.getOptionC());
+                    opts.add(q.getOptionD());
+                    m.put("options",  opts);
+                    m.put("type",     "MULTIPLE_CHOICE");
+                    return m;
+                })
                 .collect(Collectors.toList());
 
-        return ResponseEntity.status(HttpStatus.CREATED).body(Map.of(
-                "attempt_id",  System.currentTimeMillis(),   // synthetic until attempt table added
-                "quiz_id",     quizId,
-                "student_id",  studentId,
-                "started_at",  java.time.Instant.now().toString(),
-                "questions",   questions
-        ));
+        Map<String, Object> body = new LinkedHashMap<>();
+        body.put("attempt_id", System.currentTimeMillis());
+        body.put("quiz_id",    quizId);
+        body.put("student_id", studentId);
+        body.put("started_at", java.time.Instant.now().toString());
+        body.put("time_limit", quiz.getTimeLimitSeconds() != null ? quiz.getTimeLimitSeconds() : 1800);
+        body.put("questions",  questions);
+        return ResponseEntity.status(HttpStatus.CREATED).body(body);
     }
 
     // POST /quizzes/{quizId}/submit
@@ -94,16 +121,19 @@ public class QuizzesApiController {
 
         QuizResultDTO result = quizService.submitQuizAnswers(studentId, quizId, answers);
 
-        return ResponseEntity.ok(Map.of(
-                "attempt_id",   body.getOrDefault("attempt_id", 0),
-                "score",        result.getMarksObtained() != null ? result.getMarksObtained() : 0,
-                "percentage",   result.getPercentage() != null ? result.getPercentage() : 0.0,
-                "passed",       result.getPercentage() != null && result.getPercentage() >= 70,
-                "feedback",     result.getPercentage() != null && result.getPercentage() >= 70
-                                    ? "Great job! You passed the quiz." : "Keep studying and try again.",
-                "submitted_at", java.time.Instant.now().toString()
-        ));
+        boolean passed = result.getPercentage() != null && result.getPercentage() >= 70;
+
+        Map<String, Object> resp = new LinkedHashMap<>();
+        resp.put("attempt_id",  body.getOrDefault("attempt_id", 0));
+        resp.put("score",       result.getMarksObtained() != null ? result.getMarksObtained() : 0);
+        resp.put("percentage",  result.getPercentage()    != null ? result.getPercentage()    : 0.0);
+        resp.put("passed",      passed);
+        resp.put("feedback",    passed ? "Great job! You passed the quiz." : "Keep studying and try again.");
+        resp.put("submitted_at", java.time.Instant.now().toString());
+        return ResponseEntity.ok(resp);
     }
+
+    // ─── Helpers ─────────────────────────────────────────────────────────────
 
     private Long getCurrentUserId() {
         Authentication auth = SecurityContextHolder.getContext().getAuthentication();
@@ -115,7 +145,7 @@ public class QuizzesApiController {
 
     private Long toLong(Object val) {
         if (val instanceof Integer) return ((Integer) val).longValue();
-        if (val instanceof Long) return (Long) val;
+        if (val instanceof Long)    return (Long) val;
         return Long.parseLong(val.toString());
     }
 }

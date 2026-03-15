@@ -18,12 +18,18 @@
     min-height: 100vh;
   }
 
+  /* Dark mode body */
+  .dark body {
+    @apply bg-gray-950 text-gray-100;
+  }
+
   h1, h2, h3, h4, h5, h6 {
     @apply font-sans font-semibold tracking-tight;
   }
 }
 
 @layer components {
+  /* ── Buttons ──────────────────────────────────────────────────────────── */
   .btn-primary {
     @apply inline-flex items-center gap-2 px-5 py-2.5 bg-brand-500 text-white font-medium rounded-xl
            hover:bg-brand-600 active:scale-95 transition-all duration-200 shadow-sm;
@@ -44,35 +50,42 @@
            hover:bg-surface-muted hover:text-ink active:scale-95 transition-all duration-150;
   }
 
+  /* ── Cards ────────────────────────────────────────────────────────────── */
   .card {
-    @apply bg-surface-card rounded-2xl shadow-card border border-gray-100 overflow-hidden;
+    @apply bg-surface-card dark:bg-gray-900 rounded-2xl shadow-card border border-gray-100 dark:border-gray-800 overflow-hidden;
   }
 
   .card-hover {
     @apply card transition-all duration-300 hover:shadow-card-hover hover:-translate-y-0.5;
   }
 
+  /* ── Forms ────────────────────────────────────────────────────────────── */
   .input-field {
-    @apply w-full px-4 py-3 bg-surface-muted border border-gray-200 rounded-xl text-ink placeholder-gray-400
+    @apply w-full px-4 py-3 bg-surface-muted dark:bg-gray-800 border border-gray-200 dark:border-gray-700
+           rounded-xl text-ink dark:text-white placeholder-gray-400
            focus:outline-none focus:ring-2 focus:ring-brand-400 focus:border-transparent transition-all duration-200;
   }
 
+  /* ── Badges ───────────────────────────────────────────────────────────── */
   .badge {
     @apply inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium;
   }
 
+  /* ── Stats ────────────────────────────────────────────────────────────── */
   .stat-card {
     @apply card p-6 flex items-start gap-4;
   }
 
+  /* ── Progress ─────────────────────────────────────────────────────────── */
   .progress-bar {
-    @apply w-full bg-gray-100 rounded-full overflow-hidden;
+    @apply w-full bg-gray-100 dark:bg-gray-800 rounded-full overflow-hidden;
   }
 
   .progress-fill {
     @apply h-full bg-brand-500 rounded-full transition-all duration-500;
   }
 
+  /* ── Nav ──────────────────────────────────────────────────────────────── */
   .nav-link {
     @apply flex items-center gap-2 px-3 py-2 rounded-lg text-sm font-medium text-ink-muted
            hover:bg-surface-muted hover:text-ink transition-all duration-150;
@@ -82,24 +95,30 @@
     @apply flex items-center gap-2 px-3 py-2 rounded-lg text-sm font-medium text-brand-600 bg-brand-50;
   }
 
+  /* ── Page layout ──────────────────────────────────────────────────────── */
   .page-header {
     @apply mb-8;
   }
 
   .page-title {
-    @apply text-2xl font-bold text-ink mb-1;
+    @apply text-2xl font-bold text-ink dark:text-white mb-1;
   }
 
   .page-subtitle {
-    @apply text-gray-500 text-sm;
+    @apply text-gray-500 dark:text-gray-400 text-sm;
   }
 
   .section-title {
-    @apply text-lg font-semibold text-ink mb-4;
+    @apply text-lg font-semibold text-ink dark:text-white mb-4;
   }
 
   .sidebar-item {
     @apply flex items-center gap-3 px-4 py-2.5 rounded-xl text-sm font-medium transition-all duration-150 cursor-pointer;
+  }
+
+  /* ── Dark-mode surface helpers ────────────────────────────────────────── */
+  .surface-muted {
+    @apply bg-surface-muted dark:bg-gray-800;
   }
 }
 
@@ -111,6 +130,10 @@
   .glass {
     backdrop-filter: blur(12px);
     background: rgba(255, 255, 255, 0.85);
+  }
+
+  .dark .glass {
+    background: rgba(17, 24, 39, 0.85);
   }
 
   .scrollbar-hide {
@@ -135,4 +158,11 @@
 }
 ::-webkit-scrollbar-thumb:hover {
   background: #9ca3af;
+}
+
+.dark ::-webkit-scrollbar-track {
+  background: #111827;
+}
+.dark ::-webkit-scrollbar-thumb {
+  background: #374151;
 }

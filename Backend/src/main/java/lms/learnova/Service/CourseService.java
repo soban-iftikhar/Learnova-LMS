@@ -12,7 +12,6 @@ import java.util.List;
 @Service
 public class CourseService {
 
-
     private final CourseRepo courseRepository;
     private final InstructorService instructorService;
 
@@ -22,13 +21,11 @@ public class CourseService {
     }
 
     public List<Course> getAllCourses() {
-      return courseRepository.findAll();
+        return courseRepository.findAll();
     }
 
     public Course getCourseById(Long id) {
-        if (id == null) {
-            throw new IllegalArgumentException("Course id is required");
-        }
+        if (id == null) throw new IllegalArgumentException("Course id is required");
         return courseRepository.findById(id)
                 .orElseThrow(() -> new ResourceNotFoundException("Course with ID " + id + " not found"));
     }
@@ -39,44 +36,40 @@ public class CourseService {
         course.setDescription(request.getDescription());
         course.setCategory(request.getCategory());
         course.setInstructor(instructor);
-
+        // status stored as category prefix workaround — or use a dedicated status column
+        // For now status is handled at API layer via toCourseMap
         return courseRepository.save(course);
     }
 
-
     public void deleteCourse(Long id) {
-        if (id == null) {
-            throw new IllegalArgumentException("Course id is required");
-        }
+        if (id == null) throw new IllegalArgumentException("Course id is required");
         courseRepository.deleteById(id);
     }
 
-
     public Course searchCourseByTitle(String title) {
         Course course = courseRepository.findByTitle(title);
-        if (course == null) {
-            throw new ResourceNotFoundException("Course with title '" + title + "' not found");
-        }
+        if (course == null) throw new ResourceNotFoundException("Course with title '" + title + "' not found");
         return course;
     }
 
+    /**
+     * FIXED: no longer requires instructorId in request body.
+     * Only updates provided fields; instructor unchanged unless instructorId explicitly supplied.
+     */
     public Course updateCourse(Long courseId, UpdateCourseRequest request) {
-        if (courseId == null) {
-            throw new IllegalArgumentException("Course id is required");
-        }
-        Course existingCourse = courseRepository.findById(courseId)
+        if (courseId == null) throw new IllegalArgumentException("Course id is required");
+        Course existing = courseRepository.findById(courseId)
                 .orElseThrow(() -> new ResourceNotFoundException("Course with ID " + courseId + " not found"));
 
-        existingCourse.setTitle(request.getTitle());
-        existingCourse.setDescription(request.getDescription());
-        existingCourse.setCategory(request.getCategory());
+        if (request.getTitle() != null)       existing.setTitle(request.getTitle());
+        if (request.getDescription() != null) existing.setDescription(request.getDescription());
+        if (request.getCategory() != null)    existing.setCategory(request.getCategory());
 
         if (request.getInstructorId() != null) {
             Instructor instructor = instructorService.getInstructorById(request.getInstructorId());
-            existingCourse.setInstructor(instructor);
+            existing.setInstructor(instructor);
         }
 
-        return courseRepository.save(existingCourse);
+        return courseRepository.save(existing);
     }
-
 }

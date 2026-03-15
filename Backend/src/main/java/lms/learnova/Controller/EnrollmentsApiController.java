@@ -2,9 +2,11 @@ package lms.learnova.Controller;
 
 import lms.learnova.Model.Enrollment;
 import lms.learnova.Model.User;
+import lms.learnova.Repository.EnrollmentRepo;
 import lms.learnova.Repository.UserRepo;
 import lms.learnova.Service.EnrollmentService;
 import lms.learnova.Service.StudentService;
+import lms.learnova.exception.ResourceNotFoundException;
 import lms.learnova.exception.UnauthorizedException;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
@@ -12,121 +14,146 @@ import org.springframework.security.core.Authentication;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.web.bind.annotation.*;
 
+import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.stream.Collectors;
 
-/**
- * /enrollments — matches frontend API docs exactly.
- *
- * POST   /enrollments            { course_id }  → enroll current student
- * GET    /enrollments/my-courses               → enrolled courses for current user
- * DELETE /enrollments/{id}                     → unenroll
- */
 @RestController
 @RequestMapping("/enrollments")
 public class EnrollmentsApiController {
 
     private final EnrollmentService enrollmentService;
-    private final StudentService studentService;
-    private final UserRepo userRepo;
+    private final EnrollmentRepo    enrollmentRepo;
+    private final StudentService    studentService;
+    private final UserRepo          userRepo;
 
     public EnrollmentsApiController(EnrollmentService enrollmentService,
+                                    EnrollmentRepo enrollmentRepo,
                                     StudentService studentService,
                                     UserRepo userRepo) {
         this.enrollmentService = enrollmentService;
-        this.studentService = studentService;
-        this.userRepo = userRepo;
+        this.enrollmentRepo    = enrollmentRepo;
+        this.studentService    = studentService;
+        this.userRepo          = userRepo;
     }
 
-    // ─── POST /enrollments ────────────────────────────────────────────────────
+    // POST /enrollments
     @PostMapping
     public ResponseEntity<?> enroll(@RequestBody Map<String, Object> body) {
-        Long courseId = toLong(body.get("course_id"));
+        Long courseId  = toLong(body.get("course_id"));
         Long studentId = getCurrentStudentId();
 
         Enrollment enrollment = enrollmentService.enrollStudent(studentId, courseId);
 
-        return ResponseEntity.status(HttpStatus.CREATED).body(Map.of(
-                "id",              enrollment.getId(),
-                "student_id",      studentId,
-                "course_id",       courseId,
-                "enrollment_date", enrollment.getEnrollmentDate().toString(),
-                "status",          enrollment.getStatus(),
-                "progress",        0
-        ));
+        Map<String, Object> resp = new LinkedHashMap<>();
+        resp.put("id",              enrollment.getId());
+        resp.put("student_id",      studentId);
+        resp.put("course_id",       courseId);
+        resp.put("enrollment_date", enrollment.getEnrollmentDate().toString());
+        resp.put("status",          enrollment.getStatus());
+        resp.put("progress",        0);
+        return ResponseEntity.status(HttpStatus.CREATED).body(resp);
     }
 
-    // ─── GET /enrollments/my-courses ─────────────────────────────────────────
+    // GET /enrollments/my-courses
     @GetMapping("/my-courses")
     public ResponseEntity<?> getMyCourses(
-            @RequestParam(defaultValue = "1") int page,
-            @RequestParam(defaultValue = "20") int size,
-            @RequestParam(required = false) String status
-    ) {
-        Long studentId = getCurrentStudentId();
-        List<Enrollment> enrollments = enrollmentService.getEnrollmentsByStudent(studentId);
+            @RequestParam(defaultValue = "1")  int    page,
+            @RequestParam(defaultValue = "20") int    size,
+            @RequestParam(required = false)    String status) {
 
-        List<Map<String, Object>> content = enrollments.stream()
-                .filter(e -> status == null || status.isEmpty() || status.equalsIgnoreCase(e.getStatus()))
-                .map(e -> Map.<String, Object>of(
-                        "id",              e.getId(),
-                        "course", Map.of(
-                                "id",         e.getCourse().getId(),
-                                "title",      e.getCourse().getTitle(),
-                                "instructor", e.getCourse().getInstructor() != null
-                                        ? e.getCourse().getInstructor().getName() : "Unknown",
-                                "image_url",  "",
-                                "category",   e.getCourse().getCategory() != null
-                                        ? Map.of("id", 0, "name", e.getCourse().getCategory())
-                                        : Map.of("id", 0, "name", "General")
-                        ),
-                        "progress",        0,
-                        "status",          e.getStatus(),
-                        "enrollment_date", e.getEnrollmentDate().toString()
-                ))
+        Long studentId = getCurrentStudentId();
+        List<Enrollment> all = enrollmentService.getEnrollmentsByStudent(studentId);
+
+        List<Enrollment> filtered = all.stream()
+                .filter(e -> !"DROPPED".equalsIgnoreCase(e.getStatus()))
+                .filter(e -> status == null || status.isBlank() || status.equalsIgnoreCase(e.getStatus()))
                 .collect(Collectors.toList());
 
-        int total = content.size();
-        return ResponseEntity.ok(Map.of(
-                "content", content,
-                "pagination", Map.of(
-                        "page", page,
-                        "size", size,
-                        "total_elements", total,
-                        "total_pages", (int) Math.ceil((double) total / size)
-                )
-        ));
+        int total      = filtered.size();
+        int totalPages = (int) Math.ceil((double) total / size);
+        int from       = Math.min((page - 1) * size, total);
+        int to         = Math.min(from + size, total);
+
+        List<Map<String, Object>> content = filtered.subList(from, to).stream()
+                .map(e -> {
+                    var course = e.getCourse();
+
+                    long studentCount = enrollmentRepo.findByCourseId(course.getId()).stream()
+                            .filter(en -> !"DROPPED".equalsIgnoreCase(en.getStatus())).count();
+
+                    Map<String, Object> cat = new LinkedHashMap<>();
+                    if (course.getCategory() != null) {
+                        cat.put("id",   0);
+                        cat.put("name", course.getCategory());
+                    }
+
+                    Map<String, Object> instr = new LinkedHashMap<>();
+                    if (course.getInstructor() != null) {
+                        instr.put("id",   course.getInstructor().getId());
+                        instr.put("name", course.getInstructor().getName());
+                    }
+
+                    Map<String, Object> courseMap = new LinkedHashMap<>();
+                    courseMap.put("id",             course.getId());
+                    courseMap.put("title",          course.getTitle());
+                    courseMap.put("description",    course.getDescription() != null ? course.getDescription() : "");
+                    courseMap.put("category",       cat.isEmpty() ? null : cat);
+                    courseMap.put("instructor",     instr.isEmpty() ? null : instr);
+                    courseMap.put("image_url",      null);
+                    courseMap.put("students_count", studentCount);
+
+                    Map<String, Object> m = new LinkedHashMap<>();
+                    m.put("id",              e.getId());
+                    m.put("progress",        0);
+                    m.put("status",          e.getStatus());
+                    m.put("enrollment_date", e.getEnrollmentDate().toString());
+                    m.put("course",          courseMap);
+                    return m;
+                })
+                .collect(Collectors.toList());
+
+        Map<String, Object> pagination = new LinkedHashMap<>();
+        pagination.put("page",           page);
+        pagination.put("size",           size);
+        pagination.put("total_elements", total);
+        pagination.put("total_pages",    totalPages);
+
+        Map<String, Object> resp = new LinkedHashMap<>();
+        resp.put("content",    content);
+        resp.put("pagination", pagination);
+        return ResponseEntity.ok(resp);
     }
 
-    // ─── DELETE /enrollments/{enrollmentId} ───────────────────────────────────
+    // DELETE /enrollments/{enrollmentId}
     @DeleteMapping("/{enrollmentId}")
     public ResponseEntity<Void> unenroll(@PathVariable Long enrollmentId) {
         Long studentId = getCurrentStudentId();
-        // Find the enrollment and soft-delete it
-        List<Enrollment> enrollments = enrollmentService.getEnrollmentsByStudent(studentId);
-        enrollments.stream()
-                .filter(e -> e.getId().equals(enrollmentId))
-                .findFirst()
-                .ifPresent(e -> enrollmentService.unrollStudent(studentId, e.getCourse().getId()));
+
+        Enrollment enrollment = enrollmentRepo.findById(enrollmentId)
+                .orElseThrow(() -> new ResourceNotFoundException("Enrollment not found: " + enrollmentId));
+
+        if (!enrollment.getStudent().getId().equals(studentId)) {
+            throw new UnauthorizedException("Cannot unenroll from another student's enrollment");
+        }
+
+        enrollment.setStatus("DROPPED");
+        enrollmentRepo.save(enrollment);
         return ResponseEntity.noContent().build();
     }
-
-    // ─── Helpers ──────────────────────────────────────────────────────────────
 
     private Long getCurrentStudentId() {
         Authentication auth = SecurityContextHolder.getContext().getAuthentication();
         if (auth == null) throw new UnauthorizedException("Not authenticated");
-        String email = auth.getName();
-        User user = userRepo.findByEmail(email);
+        User user = userRepo.findByEmail(auth.getName());
         if (user == null) throw new UnauthorizedException("User not found");
         return user.getId();
     }
 
     private Long toLong(Object val) {
-        if (val == null) throw new IllegalArgumentException("course_id is required");
         if (val instanceof Integer) return ((Integer) val).longValue();
-        if (val instanceof Long) return (Long) val;
+        if (val instanceof Long)    return (Long) val;
         return Long.parseLong(val.toString());
     }
 }
