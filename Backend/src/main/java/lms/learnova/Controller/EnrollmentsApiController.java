@@ -1,26 +1,24 @@
 package lms.learnova.Controller;
 
-import lms.learnova.Model.Enrollment;
-import lms.learnova.Model.User;
-import lms.learnova.Repository.EnrollmentRepo;
-import lms.learnova.Repository.QuizRepo;
-import lms.learnova.Repository.StudentAnswerRepo;
-import lms.learnova.Repository.UserRepo;
+import lms.learnova.Model.*;
+import lms.learnova.Repository.*;
 import lms.learnova.Service.EnrollmentService;
 import lms.learnova.Service.StudentService;
 import lms.learnova.exception.ResourceNotFoundException;
 import lms.learnova.exception.UnauthorizedException;
-import org.springframework.http.HttpStatus;
-import org.springframework.http.ResponseEntity;
+import org.springframework.http.*;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.web.bind.annotation.*;
 
-import java.util.LinkedHashMap;
-import java.util.List;
-import java.util.Map;
+import java.util.*;
 import java.util.stream.Collectors;
 
+/**
+ * Enrollment endpoints.
+ * TEACHER: PUT /enrollments/{id}/complete  — marks a student's course as COMPLETED
+ * STUDENT: cannot mark their own course as complete (removed from student UI)
+ */
 @RestController
 @RequestMapping("/enrollments")
 public class EnrollmentsApiController {
@@ -82,49 +80,43 @@ public class EnrollmentsApiController {
         int from       = Math.min((page - 1) * size, total);
         int to         = Math.min(from + size, total);
 
-        // Count all enrollments PER COURSE in one shot to avoid N+1 queries
-        // Build a map of courseId → count using only the enrollments we already fetched
-        Map<Long, Long> courseStudentCount = new java.util.HashMap<>();
-        for (Enrollment e : filtered) {
-            Long cid = e.getCourse().getId();
-            courseStudentCount.computeIfAbsent(cid, k ->
-                (long) enrollmentRepo.findByCourseId(k).stream()
-                    .filter(en -> !"DROPPED".equalsIgnoreCase(en.getStatus())).count()
-            );
-        }
+        // Build studentCount map once (avoid N+1)
+        Map<Long, Long> studentCountCache = new HashMap<>();
 
-        List<Map<String, Object>> content = filtered.subList(from, to).stream()
-                .map(e -> {
-                    var course = e.getCourse();
-                    long studentCount = courseStudentCount.getOrDefault(course.getId(), 0L);
-                    int  progress     = calculateProgress(studentId, course.getId());
+        List<Map<String, Object>> content = filtered.subList(from, to).stream().map(e -> {
+            var course = e.getCourse();
+            long studentCount = studentCountCache.computeIfAbsent(course.getId(), cid ->
+                enrollmentRepo.findByCourseId(cid).stream()
+                    .filter(en -> !"DROPPED".equalsIgnoreCase(en.getStatus())).count());
 
-                    Map<String, Object> cat = new LinkedHashMap<>();
-                    if (course.getCategory() != null) {
-                        cat.put("id", 0); cat.put("name", course.getCategory());
-                    }
-                    Map<String, Object> instr = new LinkedHashMap<>();
-                    if (course.getInstructor() != null) {
-                        instr.put("id",   course.getInstructor().getId());
-                        instr.put("name", course.getInstructor().getName());
-                    }
-                    Map<String, Object> courseMap = new LinkedHashMap<>();
-                    courseMap.put("id",             course.getId());
-                    courseMap.put("title",          course.getTitle());
-                    courseMap.put("description",    course.getDescription() != null ? course.getDescription() : "");
-                    courseMap.put("category",       cat.isEmpty() ? null : cat);
-                    courseMap.put("instructor",     instr.isEmpty() ? null : instr);
-                    courseMap.put("image_url",      null);
-                    courseMap.put("students_count", studentCount);
+            int progress = calculateProgress(studentId, course.getId());
 
-                    Map<String, Object> m = new LinkedHashMap<>();
-                    m.put("id",              e.getId());
-                    m.put("progress",        progress);
-                    m.put("status",          e.getStatus());
-                    m.put("enrollment_date", e.getEnrollmentDate().toString());
-                    m.put("course",          courseMap);
-                    return m;
-                }).collect(Collectors.toList());
+            Map<String, Object> cat = new LinkedHashMap<>();
+            if (course.getCategory() != null) {
+                cat.put("id", 0); cat.put("name", course.getCategory());
+            }
+            Map<String, Object> instr = new LinkedHashMap<>();
+            if (course.getInstructor() != null) {
+                instr.put("id",   course.getInstructor().getId());
+                instr.put("name", course.getInstructor().getName());
+            }
+            Map<String, Object> courseMap = new LinkedHashMap<>();
+            courseMap.put("id",             course.getId());
+            courseMap.put("title",          course.getTitle());
+            courseMap.put("description",    course.getDescription() != null ? course.getDescription() : "");
+            courseMap.put("category",       cat.isEmpty() ? null : cat);
+            courseMap.put("instructor",     instr.isEmpty() ? null : instr);
+            courseMap.put("image_url",      null);
+            courseMap.put("students_count", studentCount);
+
+            Map<String, Object> m = new LinkedHashMap<>();
+            m.put("id",              e.getId());
+            m.put("progress",        progress);
+            m.put("status",          e.getStatus());
+            m.put("enrollment_date", e.getEnrollmentDate().toString());
+            m.put("course",          courseMap);
+            return m;
+        }).collect(Collectors.toList());
 
         Map<String, Object> pagination = new LinkedHashMap<>();
         pagination.put("page", page); pagination.put("size", size);
@@ -148,7 +140,11 @@ public class EnrollmentsApiController {
         return ResponseEntity.noContent().build();
     }
 
-    // PUT /enrollments/{enrollmentId}/complete  — teacher marks student as complete
+    /**
+     * PUT /enrollments/{enrollmentId}/complete
+     * TEACHER ONLY — marks a specific student's enrollment as COMPLETED.
+     * Students do NOT have this ability.
+     */
     @PutMapping("/{enrollmentId}/complete")
     public ResponseEntity<?> markComplete(@PathVariable Long enrollmentId) {
         Enrollment enrollment = enrollmentRepo.findById(enrollmentId)
@@ -156,15 +152,15 @@ public class EnrollmentsApiController {
         enrollment.setStatus("COMPLETED");
         enrollmentRepo.save(enrollment);
         Map<String, Object> resp = new LinkedHashMap<>();
-        resp.put("id",              enrollment.getId());
-        resp.put("status",          "COMPLETED");
-        resp.put("student_name",    enrollment.getStudent().getName());
-        resp.put("course_title",    enrollment.getCourse().getTitle());
-        resp.put("message",         "Course marked as complete.");
+        resp.put("id",           enrollment.getId());
+        resp.put("status",       "COMPLETED");
+        resp.put("student_name", enrollment.getStudent().getName());
+        resp.put("course_title", enrollment.getCourse().getTitle());
+        resp.put("message",      "Course marked as complete for " + enrollment.getStudent().getName());
         return ResponseEntity.ok(resp);
     }
 
-    // ─── Progress ────────────────────────────────────────────────────────────
+    // ─── Progress ─────────────────────────────────────────────────────────────
     private int calculateProgress(Long studentId, Long courseId) {
         try {
             long total = quizRepo.findByCourseIdAndIsPublishedTrue(courseId).size();

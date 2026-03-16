@@ -5,7 +5,7 @@ import {
   Edit3, X, Clock, Eye, EyeOff, Calendar,
 } from 'lucide-react'
 import { coursesApi } from '../../api/courses'
-import { videosApi, assignmentsApi, quizManagementApi, quizzesApi } from '../../api/index'
+import { videosApi, quizManagementApi, quizzesApi } from '../../api/index'
 import { useAsync } from '../../hooks/index'
 import { useToast } from '../../components/common/Toast'
 import Button from '../../components/common/Button'
@@ -18,7 +18,6 @@ import { ErrorState, EmptyState } from '../../components/common/EmptyState'
 const TABS = [
   { id: 'lectures',    label: 'Lectures',    icon: Video },
   { id: 'quizzes',     label: 'Quizzes',     icon: ClipboardList },
-  { id: 'assignments', label: 'Assignments', icon: FileText },
 ]
 
 export default function CourseBuilder() {
@@ -69,7 +68,6 @@ export default function CourseBuilder() {
 
       {tab === 'lectures'    && <LecturesTab    courseId={courseId} />}
       {tab === 'quizzes'     && <QuizzesTab     courseId={courseId} />}
-      {tab === 'assignments' && <AssignmentsTab courseId={courseId} />}
     </div>
   )
 }
@@ -445,110 +443,6 @@ function QuestionsEditor({ quizId, onSaved }) {
           <Button type="submit" size="sm" loading={saving}>Add Question</Button>
         </form>
       )}
-    </div>
-  )
-}
-
-// ═════════════════════════════════════════════════════════════════════════════
-// ASSIGNMENTS TAB
-// ═════════════════════════════════════════════════════════════════════════════
-function AssignmentsTab({ courseId }) {
-  const toast = useToast()
-  const [showForm, setShowForm] = useState(false)
-  const [saving, setSaving]     = useState(false)
-  const BLANK = { title: '', description: '', due_date: '', total_points: '100' }
-  const [form, setForm] = useState(BLANK)
-
-  const { data, loading, error, refetch } = useAsync(() => assignmentsApi.getAll(courseId), [courseId])
-  const assignments = data?.content || []
-
-  const handleCreate = async (e) => {
-    e.preventDefault()
-    if (!form.title.trim()) { toast.warning('Title is required.'); return }
-    if (!form.due_date) { toast.warning('Due date is required.'); return }
-    setSaving(true)
-    try {
-      await assignmentsApi.create(courseId, {
-        title:        form.title.trim(),
-        description:  form.description.trim(),
-        due_date:     form.due_date,
-        total_points: Number(form.total_points) || 100,
-        is_assignment: true,
-      })
-      toast.success('Assignment created!')
-      setShowForm(false)
-      setForm(BLANK)
-      refetch()
-    } catch (err) {
-      toast.error(err?.response?.data?.error || 'Failed to create assignment.')
-    } finally { setSaving(false) }
-  }
-
-  const set = (k) => (e) => setForm(f => ({ ...f, [k]: e.target.value }))
-
-  return (
-    <div className="space-y-4">
-      <div className="flex items-center justify-between">
-        <h2 className="section-title mb-0">Assignments ({assignments.length})</h2>
-        <Button size="sm" leftIcon={<Plus size={14} />} onClick={() => setShowForm(true)}>Add Assignment</Button>
-      </div>
-
-      {loading ? <SectionLoader rows={2} />
-      : error   ? <ErrorState message={error} onRetry={refetch} />
-      : !assignments.length ? (
-        <EmptyState icon={FileText} title="No assignments yet"
-          description="Create assignments for students to download and submit as PDFs."
-          action={() => setShowForm(true)} actionLabel="Add Assignment" />
-      ) : (
-        <div className="space-y-3">
-          {assignments.map(a => {
-            const days    = a.due_date ? Math.ceil((new Date(a.due_date) - new Date()) / 86400000) : null
-            const overdue = days !== null && days < 0
-            return (
-              <div key={a.id} className="card p-4 flex items-center gap-4">
-                <div className={`w-10 h-10 rounded-xl flex items-center justify-center flex-shrink-0
-                  ${overdue ? 'bg-red-50' : 'bg-amber-50'}`}>
-                  <FileText size={18} className={overdue ? 'text-red-500' : 'text-amber-500'} />
-                </div>
-                <div className="flex-1 min-w-0">
-                  <p className="text-sm font-semibold text-ink">{a.title}</p>
-                  <div className="flex items-center gap-3 mt-1 text-xs text-gray-400">
-                    <span className="flex items-center gap-1">
-                      <Calendar size={11} />
-                      {a.due_date ? new Date(a.due_date).toLocaleDateString() : 'No deadline'}
-                    </span>
-                    <span>{a.total_points} pts</span>
-                  </div>
-                </div>
-                <Badge variant={overdue ? 'danger' : days === 0 ? 'warning' : 'info'} dot size="sm">
-                  {overdue ? 'Overdue' : days === 0 ? 'Due today' : days === null ? 'Open' : `${days}d left`}
-                </Badge>
-              </div>
-            )
-          })}
-        </div>
-      )}
-
-      <Modal isOpen={showForm} onClose={() => setShowForm(false)} title="Add Assignment" size="md">
-        <form onSubmit={handleCreate} className="space-y-4">
-          <Input label="Title *" placeholder="e.g., Final Project Submission"
-            value={form.title} onChange={set('title')} required />
-          <div className="flex flex-col gap-1.5">
-            <label className="text-sm font-medium text-ink-muted">Instructions (optional)</label>
-            <textarea rows={3} placeholder="Describe what students should submit…"
-              value={form.description} onChange={set('description')} className="input-field resize-none" />
-          </div>
-          <div className="grid grid-cols-2 gap-4">
-            <Input label="Due Date *" type="datetime-local" value={form.due_date} onChange={set('due_date')} required />
-            <Input label="Total Points" type="number" min="1" placeholder="100"
-              value={form.total_points} onChange={set('total_points')} />
-          </div>
-          <div className="flex gap-3 pt-2">
-            <Button type="submit" loading={saving}>Create Assignment</Button>
-            <Button type="button" variant="outline" onClick={() => setShowForm(false)}>Cancel</Button>
-          </div>
-        </form>
-      </Modal>
     </div>
   )
 }

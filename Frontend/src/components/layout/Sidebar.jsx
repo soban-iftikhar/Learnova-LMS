@@ -15,7 +15,6 @@ const NAV_BY_ROLE = {
       { to: '/dashboard',   label: 'Dashboard',   icon: LayoutDashboard },
       { to: '/courses',     label: 'My Courses',  icon: BookOpen },
       { to: '/browse',      label: 'Browse',      icon: Search },
-      { to: '/assignments', label: 'Assignments', icon: ClipboardList },
     ]},
     { group: 'Progress', items: [
       { to: '/progress', label: 'Progress', icon: BarChart2 },
@@ -29,8 +28,6 @@ const NAV_BY_ROLE = {
       { to: '/teacher/dashboard',   label: 'Dashboard',    icon: LayoutDashboard },
       { to: '/teacher/courses',     label: 'My Courses',   icon: BookOpen },
       { to: '/teacher/quizzes',     label: 'Quizzes',      icon: ClipboardCheck },
-      { to: '/teacher/assignments', label: 'Assignments',  icon: ClipboardList },
-      { to: '/teacher/attendance',  label: 'Attendance',   icon: CalendarCheck },
       { to: '/teacher/chat',        label: 'Student Chat', icon: MessageCircle },
     ]},
     { group: 'Account', items: [

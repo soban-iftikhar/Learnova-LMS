@@ -45,12 +45,6 @@ public class CourseContentService {
                 .collect(Collectors.toList());
     }
 
-    public List<PDF> getAssignmentsByCourse(Long courseId) {
-        return getPDFsByCourse(courseId).stream()
-                .filter(PDF::getIsAssignment)
-                .collect(Collectors.toList());
-    }
-
     public CourseContent getContentById(Long contentId) {
         return contentRepo.findById(contentId)
                 .orElseThrow(() -> new ResourceNotFoundException("Content not found with id: " + contentId));
@@ -76,14 +70,9 @@ public class CourseContentService {
             dto.setVideoUrl(v.getVideoUrl());
             dto.setDurationMinutes(v.getDurationMinutes());
             dto.setThumbnailPath(v.getThumbnailPath());
-            dto.setIsAssignment(false);
         } else if (content instanceof PDF p) {
             dto.setContentType("PDF");
-            dto.setIsAssignment(p.getIsAssignment());
             dto.setPageCount(p.getPageCount());
-            if (p.getDueDate() != null) {
-                dto.setDueDate(p.getDueDate());
-            }
             dto.setVideoUrl(null);
         }
 

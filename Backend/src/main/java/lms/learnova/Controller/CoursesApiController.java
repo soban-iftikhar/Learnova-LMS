@@ -219,21 +219,17 @@ public class CoursesApiController {
         m.put("status",     "ACTIVE");
         m.put("created_at", c.getCreatedAt() != null ? c.getCreatedAt().toString() : null);
 
-        long enrollCount = 0, videoCount = 0, assignCount = 0;
+        long enrollCount = 0, videoCount = 0;
         try {
             enrollCount = enrollmentRepo.findByCourseId(c.getId()).stream()
                     .filter(e -> !"DROPPED".equalsIgnoreCase(e.getStatus())).count();
             List<lms.learnova.Model.CourseContent> allContent =
                     contentRepo.findByCourseIdOrderByOrderIndex(c.getId());
             videoCount  = allContent.stream().filter(x -> x instanceof Video).count();
-            assignCount = allContent.stream()
-                    .filter(x -> x instanceof PDF && Boolean.TRUE.equals(((PDF) x).getIsAssignment()))
-                    .count();
         } catch (Exception ignored) {}
 
         m.put("students_count",    enrollCount);
         m.put("videos_count",      videoCount);
-        m.put("assignments_count", assignCount);
         return m;
     }
 
@@ -246,8 +242,6 @@ public class CoursesApiController {
             item.put("content_type",  mat.getContentType() != null ? mat.getContentType() : "VIDEO");
             item.put("video_url",     mat.getVideoUrl()    != null ? mat.getVideoUrl()    : "");
             item.put("duration",      mat.getDurationMinutes() != null ? mat.getDurationMinutes() : 0);
-            item.put("is_assignment", Boolean.TRUE.equals(mat.getIsAssignment()));
-            item.put("due_date",      mat.getDueDate() != null ? mat.getDueDate().toString() : "");
             item.put("order",         mat.getOrderIndex() != null ? mat.getOrderIndex() : 0);
             return item;
         }).collect(Collectors.toList());

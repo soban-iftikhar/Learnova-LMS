@@ -20,8 +20,6 @@ public class CourseContentDTO {
     private Integer orderIndex;
     private Boolean isPublished;
 
-    // PDF / Assignment-specific
-    private Boolean isAssignment;
-    private LocalDateTime dueDate;
+    // PDF-specific
     private Integer pageCount;
 }

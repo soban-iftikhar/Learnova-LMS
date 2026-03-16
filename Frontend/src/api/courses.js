@@ -22,19 +22,13 @@ export const coursesApi = {
   getAnalytics: (id, params = {}) =>
     apiClient.get(`/courses/${id}/analytics`, { params }),
 
-  getAssignments: (courseId) =>
-    apiClient.get(`/courses/${courseId}/assignments`),
-
-  // Create an assignment for a course (sent as course content with is_assignment=true)
-  createAssignment: (courseId, data) =>
-    apiClient.post(`/courses/${courseId}/assignments`, data),
-
   getQuizzes: (courseId) =>
     apiClient.get(`/courses/${courseId}/quizzes`),
 
   getEnrollments: (courseId, params = {}) =>
     apiClient.get(`/courses/${courseId}/enrollments`, { params }),
 
-  getAttendance: (courseId, params = {}) =>
-    apiClient.get(`/courses/${courseId}/attendance`, { params }),
+  // Teacher: get all quiz results across a course (from DB)
+  getQuizResults: (courseId) =>
+    apiClient.get(`/courses/${courseId}/quiz-results`),
 }

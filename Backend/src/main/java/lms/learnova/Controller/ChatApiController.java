@@ -4,35 +4,38 @@ import lms.learnova.Model.User;
 import lms.learnova.Repository.UserRepo;
 import lms.learnova.exception.UnauthorizedException;
 import org.springframework.http.ResponseEntity;
+import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.web.bind.annotation.*;
 
 import java.time.Instant;
+import java.time.temporal.ChronoUnit;
 import java.util.*;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.atomic.AtomicLong;
 import java.util.stream.Collectors;
 
 /**
- * Polling-based chat supporting:
- * - Private channel: courseId__studentId  (teacher ↔ one student)
- * - Broadcast channel: courseId           (teacher → all students, visible to all in course)
+ * Chat API — messages stored in memory, auto-expire after 24 hours.
  *
- * Student always reads/writes on the private channel (courseId__studentId).
- * Teacher can read/write private channels or the broadcast channel.
+ * Channels:
+ *  - Private:   "courseId__studentId"   (teacher ↔ one student)
+ *  - Broadcast: "courseId"              (teacher → all students)
+ *
+ * Scheduled cleanup runs every 30 minutes to evict messages older than 24 h.
  *
  * GET  /chat/{channelId}/messages
  * POST /chat/{channelId}/messages
- * GET  /chat/{channelId}/messages?since=
  */
 @RestController
 @RequestMapping("/chat")
 public class ChatApiController {
 
-    private final ConcurrentHashMap<String, List<Map<String, Object>>> chatStore = new ConcurrentHashMap<>();
+    private final ConcurrentHashMap<String, List<Map<String, Object>>> chatStore =
+            new ConcurrentHashMap<>();
     private final AtomicLong idSeq = new AtomicLong(1);
-    private final UserRepo userRepo;
+    private final UserRepo   userRepo;
 
     public ChatApiController(UserRepo userRepo) {
         this.userRepo = userRepo;
@@ -90,6 +93,27 @@ public class ChatApiController {
         }
 
         return ResponseEntity.ok(msg);
+    }
+
+    /**
+     * Runs every 30 min — removes messages older than 24 hours from every channel.
+     */
+    @Scheduled(fixedDelay = 30 * 60 * 1000L)
+    public void evictExpiredMessages() {
+        Instant cutoff = Instant.now().minus(24, ChronoUnit.HOURS);
+        for (Map.Entry<String, List<Map<String, Object>>> entry : chatStore.entrySet()) {
+            List<Map<String, Object>> fresh = entry.getValue().stream()
+                    .filter(m -> {
+                        try { return Instant.parse(String.valueOf(m.get("timestamp"))).isAfter(cutoff); }
+                        catch (Exception ignored) { return true; }
+                    })
+                    .collect(Collectors.toList());
+            if (fresh.isEmpty()) {
+                chatStore.remove(entry.getKey());
+            } else {
+                chatStore.put(entry.getKey(), Collections.synchronizedList(fresh));
+            }
+        }
     }
 
     private User currentUser() {

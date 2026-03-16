@@ -33,9 +33,6 @@ public class Enrollment {
     @Column(name = "status")
     private String status = "ACTIVE"; // ACTIVE, COMPLETED, DROPPED
 
-    @OneToMany(mappedBy = "enrollment", cascade = CascadeType.ALL, orphanRemoval = true)
-    private List<Attendance> attendances = new ArrayList<>();
-
     @Column(name = "created_at")
     private LocalDateTime createdAt;
 

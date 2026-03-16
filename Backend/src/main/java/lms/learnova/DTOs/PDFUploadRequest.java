@@ -1,15 +1,11 @@
 package lms.learnova.DTOs;
 
-import java.time.LocalDate;
-
 public class PDFUploadRequest {
     private String title;
     private String description;
     private String filePath;
     private Long fileSize;
     private Integer pageCount;
-    private Boolean isAssignment;
-    private LocalDate dueDate;
     private Boolean isPublished;
     private Integer orderIndex;
 
@@ -54,22 +50,6 @@ public class PDFUploadRequest {
 
     public void setPageCount(Integer pageCount) {
         this.pageCount = pageCount;
-    }
-
-    public Boolean getIsAssignment() {
-        return isAssignment;
-    }
-
-    public void setIsAssignment(Boolean isAssignment) {
-        this.isAssignment = isAssignment;
-    }
-
-    public LocalDate getDueDate() {
-        return dueDate;
-    }
-
-    public void setDueDate(LocalDate dueDate) {
-        this.dueDate = dueDate;
     }
 
     public Boolean getIsPublished() {

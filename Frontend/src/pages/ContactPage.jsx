@@ -6,7 +6,6 @@ import Button from '../components/common/Button'
 const FAQS = [
   { q: 'How do I enroll in a course?', a: 'Simply sign up, browse our course catalog, and click "Enroll". Most courses are free to start.' },
   { q: 'Can I access courses on mobile?', a: 'Yes! Learnova is fully responsive and works seamlessly on all devices.' },
-  { q: 'How are assignments graded?', a: 'Assignments are reviewed and graded by your course instructor, usually within 3–5 business days.' },
   { q: 'Do I get a certificate?', a: 'Yes, you receive a digital certificate upon successfully completing a course.' },
 ]
 

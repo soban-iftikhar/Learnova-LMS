@@ -62,11 +62,6 @@ const DashboardPage = () => {
           <StatCard label="Average Grade"
             value={data?.average_grade ? `${Math.round(data.average_grade)}%` : 'N/A'}
             icon={TrendingUp} color="violet" subtitle="across all courses" />
-          <StatCard label="Upcoming Deadlines"
-            value={data?.upcoming_deadlines?.length ?? 0}
-            icon={ClipboardList}
-            color={data?.upcoming_deadlines?.length > 0 ? 'rose' : 'brand'}
-            subtitle="assignments due soon" />
         </div>
       )}
 
@@ -154,9 +149,8 @@ const DashboardPage = () => {
             <h3 className="text-sm font-semibold text-ink mb-3">Quick Actions</h3>
             <div className="space-y-1">
               {[
-                { to: '/courses',     label: 'Browse all courses',   icon: BookOpen },
-                { to: '/assignments', label: 'View assignments',      icon: ClipboardList },
-                { to: '/progress',    label: 'Check my progress',     icon: TrendingUp },
+                { to: '/courses',  label: 'Browse all courses', icon: BookOpen },
+                { to: '/progress', label: 'Check my progress',  icon: TrendingUp },
               ].map(({ to, label, icon: Icon }) => (
                 <Link key={to} to={to}
                   className="flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm text-gray-500 hover:text-brand-600 hover:bg-brand-50 transition-colors group">

@@ -1,6 +1,6 @@
 import React from 'react'
 import { TrendingUp, Award, BookOpen, BarChart2, CheckCircle2, Calendar } from 'lucide-react'
-import { dashboardApi, enrollmentsApi, attendanceApi } from '../../api/index'
+import { dashboardApi, enrollmentsApi } from '../../api/index'
 import { useAsync } from '../../hooks/index'
 import ProgressBar from '../../components/common/ProgressBar'
 import StatCard from '../../components/StatCard'
@@ -10,16 +10,9 @@ import { ErrorState, EmptyState } from '../../components/common/EmptyState'
 const ProgressPage = () => {
   const { data: dash,    loading: dashLoading,    error: dashError }    = useAsync(() => dashboardApi.getStudentDashboard())
   const { data: enrollData, loading: enrollLoading }                     = useAsync(() => enrollmentsApi.getMyCourses({ size: 50 }))
-  const { data: attendData, loading: attendLoading }                     = useAsync(() => attendanceApi.getStudentSummary())
 
   const enrollments  = enrollData?.content   || []
-  const attendance   = attendData?.attendance || []
-  const loading      = dashLoading || enrollLoading || attendLoading
-
-  // Overall attendance average
-  const avgAttendance = attendance.length
-    ? Math.round(attendance.reduce((s, a) => s + (a.percentage || 0), 0) / attendance.length)
-    : 0
+  const loading      = dashLoading || enrollLoading
 
   if (dashError) return <ErrorState message={dashError} />
 
@@ -44,40 +37,13 @@ const ProgressPage = () => {
       </div>
 
       {/* Stats — all real */}
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
         <StatCard label="Enrolled Courses" value={enrolled}    icon={BookOpen}     color="brand" />
         <StatCard label="Completed"        value={completed}   icon={CheckCircle2} color="sky"   />
-        <StatCard label="Avg Attendance"   value={attendance.length ? `${avgAttendance}%` : 'N/A'}
-          icon={Calendar} color="violet" />
         <StatCard label="Avg Grade"
           value={dash?.average_grade ? `${Math.round(dash.average_grade)}%` : 'N/A'}
           icon={Award} color="amber" />
       </div>
-
-      {/* Attendance per course */}
-      {attendance.length > 0 && (
-        <div className="card p-6">
-          <h2 className="text-lg font-semibold text-ink mb-4">Attendance by Course</h2>
-          <div className="space-y-4">
-            {attendance.map(a => (
-              <div key={a.enrollment_id}>
-                <div className="flex items-center justify-between mb-1.5">
-                  <span className="text-sm font-medium text-ink truncate max-w-xs">{a.course_title}</span>
-                  <div className="flex items-center gap-3 flex-shrink-0 text-xs text-gray-400">
-                    <span>{a.present}/{a.total_classes} classes</span>
-                    <span className="font-bold text-ink">{a.percentage}%</span>
-                  </div>
-                </div>
-                <ProgressBar
-                  value={a.percentage}
-                  color={a.percentage >= 75 ? 'brand' : a.percentage >= 50 ? 'amber' : 'rose'}
-                  size="sm"
-                />
-              </div>
-            ))}
-          </div>
-        </div>
-      )}
 
       {/* Course enrollment breakdown */}
       <div>
@@ -121,7 +87,6 @@ const ProgressPage = () => {
             { label: 'First Enrollment',  earned: enrolled >= 1,                            icon: '🎯' },
             { label: 'Course Complete',   earned: completed >= 1,                            icon: '🏆' },
             { label: 'Dedicated Learner', earned: enrolled >= 3,                             icon: '📚' },
-            { label: 'Good Attendance',   earned: avgAttendance >= 75 && attendance.length > 0, icon: '📅' },
             { label: 'Scholar',           earned: completed >= 5,                             icon: '🎓' },
           ].map(({ label, earned, icon }) => (
             <div key={label}

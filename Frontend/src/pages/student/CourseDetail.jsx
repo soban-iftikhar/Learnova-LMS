@@ -6,7 +6,7 @@ import {
   Timer, X,
 } from 'lucide-react'
 import { coursesApi } from '../../api/courses'
-import { enrollmentsApi, quizzesApi, assignmentsApi, videosApi, ratingsApi } from '../../api/index'
+import { enrollmentsApi, quizzesApi, videosApi, ratingsApi } from '../../api/index'
 import { useAsync } from '../../hooks/index'
 import { useToast } from '../../components/common/Toast'
 import Button from '../../components/common/Button'
@@ -38,18 +38,15 @@ export default function CourseDetailPage() {
   const [activeVideo, setActiveVideo] = useState(null)
   const [openSection, setOpenSection] = useState('lectures')
   const [quizModal, setQuizModal]     = useState(null)
-  const [submitModal, setSubmitModal] = useState(null)
   const [ratingModal, setRatingModal] = useState(false)
 
   const { data: course, loading, error, refetch: refetchCourse } = useAsync(() => coursesApi.getById(id), [id])
   const { data: videosData }     = useAsync(() => videosApi.getAll(id), [id])
   const { data: quizzesData }    = useAsync(() => quizzesApi.getAll(id), [id])
-  const { data: assignmentsData }= useAsync(() => assignmentsApi.getAll(id), [id])
   const { data: myEnrollments, refetch: refetchEnrollments } = useAsync(() => enrollmentsApi.getMyCourses({ size: 200 }), [])
 
   const videos      = videosData?.content  || []
   const quizzes     = (quizzesData?.content || []).filter(q => q.status === 'ACTIVE')
-  const assignments = assignmentsData?.content || []
   const myEnrollment= myEnrollments?.content?.find(e => e.course?.id === Number(id))
   const isEnrolled  = !!myEnrollment
 
@@ -136,7 +133,6 @@ export default function CourseDetailPage() {
                   {course.students_count > 0 && <span className="flex items-center gap-1.5"><Users size={14} />{course.students_count} students</span>}
                   <span className="flex items-center gap-1.5"><Play size={14} />{videos.length} lectures</span>
                   <span className="flex items-center gap-1.5"><ClipboardList size={14} />{quizzes.length} quizzes</span>
-                  <span className="flex items-center gap-1.5"><FileText size={14} />{assignments.length} assignments</span>
                 </div>
               </div>
             </div>
@@ -146,7 +142,7 @@ export default function CourseDetailPage() {
           <div className="card overflow-hidden">
             <div className="p-5 border-b border-gray-100">
               <h2 className="font-semibold text-ink">Course Content</h2>
-              <p className="text-xs text-gray-400 mt-1">{videos.length + quizzes.length + assignments.length} items</p>
+              <p className="text-xs text-gray-400 mt-1">{videos.length + quizzes.length} items</p>
             </div>
 
             {/* Lectures */}
@@ -188,31 +184,6 @@ export default function CourseDetailPage() {
               ))}
               {!quizzes.length && <p className="px-5 py-4 text-sm text-gray-400">No quizzes available yet.</p>}
             </SectionAccordion>
-
-            {/* Assignments */}
-            <SectionAccordion id="assignments" label="Assignments" icon={FileText}
-              count={assignments.length} open={openSection === 'assignments'}
-              onToggle={() => setOpenSection(s => s === 'assignments' ? null : 'assignments')}>
-              {assignments.map(a => {
-                const days = a.due_date ? Math.ceil((new Date(a.due_date) - new Date()) / 86400000) : null
-                const overdue = days !== null && days < 0
-                return (
-                  <div key={a.id} className="flex items-center gap-3 px-5 py-3 border-t border-gray-50">
-                    <div className={`w-7 h-7 rounded-full flex items-center justify-center flex-shrink-0 ${overdue ? 'bg-red-50' : 'bg-amber-50'}`}>
-                      <FileText size={13} className={overdue ? 'text-red-500' : 'text-amber-500'} />
-                    </div>
-                    <div className="flex-1 min-w-0">
-                      <p className="text-sm font-medium text-ink">{a.title}</p>
-                      <p className="text-xs text-gray-400">Due: {a.due_date ? new Date(a.due_date).toLocaleDateString() : '—'} · {a.total_points} pts</p>
-                    </div>
-                    {isEnrolled
-                      ? <Button size="xs" variant="outline" disabled={overdue} onClick={() => setSubmitModal(a)}><Upload size={12} /> Submit</Button>
-                      : <Lock size={14} className="text-gray-300" />}
-                  </div>
-                )
-              })}
-              {!assignments.length && <p className="px-5 py-4 text-sm text-gray-400">No assignments yet.</p>}
-            </SectionAccordion>
           </div>
         </div>
 
@@ -227,7 +198,7 @@ export default function CourseDetailPage() {
                 </div>
                 <ProgressBar value={myEnrollment?.progress || 0} showLabel size="sm" />
                 <Button fullWidth onClick={() => setRatingModal(true)}>
-                  <CheckCircle2 size={15} /> Complete & Rate
+                  <Star size={15} /> Rate this course
                 </Button>
                 <button onClick={handleUnenroll} disabled={unenrolling}
                   className="w-full text-xs text-gray-400 hover:text-red-500 transition-colors py-1">
@@ -237,7 +208,7 @@ export default function CourseDetailPage() {
             ) : (
               <>
                 <h3 className="font-semibold text-ink">Ready to start?</h3>
-                <p className="text-sm text-gray-400">Enroll to access all lectures, quizzes and assignments.</p>
+                <p className="text-sm text-gray-400">Enroll to access all lectures and quizzes.</p>
                 <Button fullWidth size="lg" onClick={handleEnroll} loading={enrolling}>
                   Enroll Now — Free
                 </Button>
@@ -250,7 +221,6 @@ export default function CourseDetailPage() {
             {[
               { icon: Play, label: `${videos.length} video lectures` },
               { icon: ClipboardList, label: `${quizzes.length} timed quizzes` },
-              { icon: FileText, label: `${assignments.length} assignments` },
               { icon: Star, label: 'Certificate on completion' },
             ].map(({ icon: Icon, label }) => (
               <div key={label} className="flex items-center gap-3 text-sm text-gray-500">
@@ -263,9 +233,6 @@ export default function CourseDetailPage() {
 
       {/* Quiz Modal */}
       {quizModal && <QuizAttemptModal quiz={quizModal} onClose={() => setQuizModal(null)} />}
-
-      {/* Assignment Submit Modal */}
-      {submitModal && <AssignmentSubmitModal assignment={submitModal} onClose={() => setSubmitModal(null)} />}
 
       {/* Rating Modal */}
       {ratingModal && (
@@ -459,55 +426,6 @@ function QuizAttemptModal({ quiz, onClose }) {
         )}
       </div>
     </div>
-  )
-}
-
-function AssignmentSubmitModal({ assignment, onClose }) {
-  const toast    = useToast()
-  const [file, setFile]       = useState(null)
-  const [text, setText]       = useState('')
-  const [loading, setLoading] = useState(false)
-
-  const handleSubmit = async (e) => {
-    e.preventDefault()
-    if (!file && !text.trim()) { toast.warning('Please attach a file or add notes.'); return }
-    setLoading(true)
-    try {
-      const fd = new FormData()
-      if (file) fd.append('file', file)
-      if (text) fd.append('submission_text', text)
-      await assignmentsApi.submit(assignment.id, fd)
-      toast.success('Assignment submitted!')
-      onClose()
-    } catch (err) {
-      toast.error(err?.response?.data?.error || 'Submission failed.')
-    } finally { setLoading(false) }
-  }
-
-  return (
-    <Modal isOpen onClose={onClose} title={`Submit: ${assignment.title}`} size="md">
-      <form onSubmit={handleSubmit} className="space-y-4">
-        <div>
-          <label className="text-sm font-medium text-ink-muted block mb-2">Attach File (PDF, DOC, ZIP)</label>
-          <div className="border-2 border-dashed border-gray-200 rounded-xl p-6 text-center cursor-pointer hover:border-brand-400 hover:bg-brand-50 transition-all"
-            onClick={() => document.getElementById('asgn-file').click()}>
-            <Upload size={24} className="text-gray-300 mx-auto mb-2" />
-            {file ? <p className="text-sm text-brand-600 font-medium">{file.name}</p> : <p className="text-sm text-gray-400">Click to choose a file</p>}
-            <input id="asgn-file" type="file" className="hidden" accept=".pdf,.doc,.docx,.zip,.txt" onChange={e => setFile(e.target.files[0])} />
-          </div>
-        </div>
-        <div className="flex flex-col gap-1.5">
-          <label className="text-sm font-medium text-ink-muted">Notes (optional)</label>
-          <textarea rows={3} placeholder="Add any notes for your instructor…"
-            value={text} onChange={e => setText(e.target.value)}
-            className="w-full px-4 py-3 bg-surface-muted border border-gray-200 rounded-xl text-ink placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-brand-400 focus:border-transparent resize-none" />
-        </div>
-        <div className="flex gap-3">
-          <Button type="submit" loading={loading} className="flex-1">Submit Assignment</Button>
-          <Button type="button" variant="outline" onClick={onClose} className="flex-1">Cancel</Button>
-        </div>
-      </form>
-    </Modal>
   )
 }
 

@@ -20,7 +20,6 @@ const StudentDashboard  = lazy(() => import('./pages/student/Dashboard'))
 const CoursesPage       = lazy(() => import('./pages/student/Courses'))
 const BrowseCoursesPage = lazy(() => import('./pages/student/BrowseCourses'))
 const CourseDetailPage  = lazy(() => import('./pages/student/CourseDetail'))
-const AssignmentsPage   = lazy(() => import('./pages/student/Assignments'))
 const ProgressPage      = lazy(() => import('./pages/student/Progress'))
 const SettingsPage      = lazy(() => import('./pages/student/Settings'))
 
@@ -33,8 +32,6 @@ const CourseBuilder      = lazy(() => import('./pages/teacher/CourseBuilder'))
 const CourseAnalytics    = lazy(() => import('./pages/teacher/CourseAnalytics'))
 const TeacherQuizzes     = lazy(() => import('./pages/teacher/Quizzes'))
 const TeacherChat        = lazy(() => import('./pages/teacher/Chat'))
-const TeacherAssignments = lazy(() => import('./pages/teacher/Assignments'))
-const TeacherAttendance  = lazy(() => import('./pages/teacher/Attendance'))
 const TeacherSettings    = lazy(() => import('./pages/teacher/Settings'))
 
 // Admin
@@ -74,7 +71,6 @@ const App = () => (
               <Route path="/courses"           element={<CoursesPage />} />
               <Route path="/browse"            element={<BrowseCoursesPage />} />
               <Route path="/courses/:id"       element={<CourseDetailPage />} />
-              <Route path="/assignments"       element={<AssignmentsPage />} />
               <Route path="/progress"          element={<ProgressPage />} />
               <Route path="/settings"          element={<SettingsPage />} />
               <Route path="/profile"           element={<SettingsPage />} />
@@ -90,8 +86,6 @@ const App = () => (
               <Route path="/teacher/courses/:courseId/analytics" element={<CourseAnalytics />} />
               <Route path="/teacher/quizzes"                    element={<TeacherQuizzes />} />
               <Route path="/teacher/chat"                       element={<TeacherChat />} />
-              <Route path="/teacher/assignments"                 element={<TeacherAssignments />} />
-              <Route path="/teacher/attendance"                  element={<TeacherAttendance />} />
               <Route path="/teacher/settings"                    element={<TeacherSettings />} />
             </Route>
 

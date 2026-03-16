@@ -84,7 +84,6 @@ const AboutPage = () => (
           {[
             { color: 'bg-brand-500', label: 'Courses launched in 2025', val: '120+' },
             { color: 'bg-violet-500', label: 'Average course rating', val: '4.8 ★' },
-            { color: 'bg-amber-500', label: 'Assignments graded', val: '45k+' },
             { color: 'bg-sky-500', label: 'Student satisfaction', val: '97%' },
           ].map(({ color, label, val }) => (
             <div key={label} className="card p-5">

@@ -12,10 +12,4 @@ import lombok.*;
 public class PDF extends CourseContent {
     @Column(name = "page_count")
     private Integer pageCount;
-
-    @Column(name = "is_assignment")
-    private Boolean isAssignment = false;
-
-    @Column(name = "due_date")
-    private java.time.LocalDateTime dueDate;
 }

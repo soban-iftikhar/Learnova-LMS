@@ -14,5 +14,4 @@ public class EnrollmentDTO {
     private Long courseId;
     private LocalDate enrollmentDate;
     private String status;
-    private double attendancePercentage;
 }

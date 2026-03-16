@@ -158,11 +158,6 @@ export default function BrowseCourses() {
                         {course.videos_count} videos
                       </span>
                     )}
-                    {course.assignments_count > 0 && (
-                      <span className="text-xs bg-amber-50 text-amber-600 px-2 py-0.5 rounded-full">
-                        {course.assignments_count} assignments
-                      </span>
-                    )}
                   </div>
 
                   <div className="mt-auto flex gap-2">

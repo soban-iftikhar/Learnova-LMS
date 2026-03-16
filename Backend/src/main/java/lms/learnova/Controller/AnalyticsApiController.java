@@ -61,8 +61,6 @@ public class AnalyticsApiController {
                     m.put("name",                  e.getStudent().getName());
                     m.put("progress",              0);
                     m.put("quiz_average",          0);
-                    m.put("assignment_average",    0);
-                    m.put("attendance_percentage", 0);
                     return m;
                 })
                 .collect(Collectors.toList());
