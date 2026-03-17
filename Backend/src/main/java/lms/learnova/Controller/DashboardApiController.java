@@ -9,6 +9,7 @@ import org.springframework.beans.factory.annotation.Value;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.core.context.SecurityContextHolder;
+import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.*;
@@ -62,6 +63,7 @@ public class DashboardApiController {
 
     // ── GET /dashboard/student ───────────────────────────────────────────────
     @GetMapping("/student")
+    @Transactional
     public ResponseEntity<?> studentDashboard() {
         Long userId = getCurrentUserId();
         List<Enrollment> enrollments = enrollmentService.getEnrollmentsByStudent(userId);
@@ -96,6 +98,7 @@ public class DashboardApiController {
 
     // ── GET /dashboard/instructor ────────────────────────────────────────────
     @GetMapping("/instructor")
+    @Transactional
     public ResponseEntity<?> instructorDashboard() {
         Long userId = getCurrentUserId();
 
@@ -218,6 +221,7 @@ public class DashboardApiController {
 
     // ── GET /dashboard/admin ─────────────────────────────────────────────────
     @GetMapping("/admin")
+    @Transactional
     public ResponseEntity<?> adminDashboard() {
         var stats = adminService.getSystemStatistics();
         int students    = stats.getTotalStudents()    != null ? stats.getTotalStudents()    : 0;

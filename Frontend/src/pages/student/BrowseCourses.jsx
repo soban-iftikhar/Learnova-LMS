@@ -1,4 +1,4 @@
-import React, { useState } from 'react'
+import React, { useState, useEffect } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { Search, Filter, BookOpen, Users, Star, Plus, CheckCircle2 } from 'lucide-react'
 import { coursesApi } from '../../api/courses'

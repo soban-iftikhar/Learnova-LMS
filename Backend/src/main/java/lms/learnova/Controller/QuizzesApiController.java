@@ -8,6 +8,7 @@ import lms.learnova.exception.UnauthorizedException;
 import org.springframework.http.*;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.core.context.SecurityContextHolder;
+import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.*;
@@ -28,26 +29,37 @@ public class QuizzesApiController {
     private final StudentAnswerRepo answerRepo;
     private final StudentRepo       studentRepo;
     private final UserRepo          userRepo;
+    private final QuizAttemptRepo   quizAttemptRepo;
 
     public QuizzesApiController(QuizService quizService, QuizRepo quizRepo,
                                 QuizQuestionRepo questionRepo, StudentAnswerRepo answerRepo,
-                                StudentRepo studentRepo, UserRepo userRepo) {
+                                StudentRepo studentRepo, UserRepo userRepo, QuizAttemptRepo quizAttemptRepo) {
         this.quizService  = quizService;
         this.quizRepo     = quizRepo;
         this.questionRepo = questionRepo;
         this.answerRepo   = answerRepo;
         this.studentRepo  = studentRepo;
         this.userRepo     = userRepo;
+        this.quizAttemptRepo = quizAttemptRepo;
     }
 
     // GET /courses/{courseId}/quizzes  — published only (student view)
     @GetMapping("/courses/{courseId}/quizzes")
     public ResponseEntity<?> getCourseQuizzes(@PathVariable Long courseId) {
+        Long studentId = getCurrentUserId();
+        
         List<Map<String, Object>> quizzes = quizService.getQuizzesByCourse(courseId)
                 .stream().map(q -> {
                     long count   = questionRepo.countByQuizId(q.getId());
                     int  seconds = (q.getTimeLimitSeconds() != null && q.getTimeLimitSeconds() > 0)
                                    ? q.getTimeLimitSeconds() : 1800;
+                    
+                    // Check if student has already attempted this quiz
+                    Optional<QuizAttempt> attempt = quizAttemptRepo.findByStudentIdAndQuizId(studentId, q.getId());
+                    boolean isLocked = attempt.filter(QuizAttempt::getIsLocked).isPresent();
+                    Integer attemptedScore = attempt.map(QuizAttempt::getScore).orElse(null);
+                    Integer attemptedMaxScore = attempt.map(QuizAttempt::getMaxScore).orElse(null);
+                    
                     Map<String, Object> m = new LinkedHashMap<>();
                     m.put("id",              q.getId());
                     m.put("title",           q.getTitle());
@@ -56,7 +68,13 @@ public class QuizzesApiController {
                     m.put("time_limit",      seconds / 60);
                     m.put("pass_percentage", 70);
                     m.put("max_score",       q.getMaxScore() != null ? q.getMaxScore() : 100);
-                    m.put("status",          "ACTIVE");
+                    m.put("status",          isLocked ? "LOCKED" : "ACTIVE");
+                    m.put("is_locked",       isLocked);
+                    m.put("attempted",       attempt.isPresent());
+                    if (attemptedScore != null) {
+                        m.put("attempted_score", attemptedScore);
+                        m.put("attempted_max_score", attemptedMaxScore);
+                    }
                     return m;
                 }).collect(Collectors.toList());
 
@@ -68,9 +86,16 @@ public class QuizzesApiController {
     // POST /quizzes/{quizId}/start
     @PostMapping("/quizzes/{quizId}/start")
     public ResponseEntity<?> startQuiz(@PathVariable Long quizId) {
-        getCurrentUserId();
+        Long studentId = getCurrentUserId();
         Quiz quiz = quizRepo.findById(quizId)
                 .orElseThrow(() -> new ResourceNotFoundException("Quiz not found: " + quizId));
+        
+        // Check if quiz is already attempt and locked
+        Optional<QuizAttempt> attempt = quizAttemptRepo.findByStudentIdAndQuizId(studentId, quizId);
+        if (attempt.isPresent() && attempt.get().getIsLocked()) {
+            return ResponseEntity.status(HttpStatus.FORBIDDEN)
+                    .body(Map.of("error", "Quiz already attempted and locked. Teacher must unlock to retry."));
+        }
 
         List<Map<String, Object>> questions = questionRepo
                 .findByQuizIdOrderByQuestionOrder(quizId).stream()
@@ -148,6 +173,18 @@ public class QuizzesApiController {
             }
         }
 
+        // Record quiz attempt (lock for future attempts)
+        if (student != null && quiz != null) {
+            Optional<QuizAttempt> existingAttempt = quizAttemptRepo.findByStudentIdAndQuizId(studentId, quizId);
+            QuizAttempt attempt = existingAttempt.orElse(new QuizAttempt());
+            attempt.setStudent(student);
+            attempt.setQuiz(quiz);
+            attempt.setScore(marksObtained);
+            attempt.setMaxScore(totalMarks);
+            attempt.setIsLocked(true); // Locked by default
+            quizAttemptRepo.save(attempt);
+        }
+
         return ResponseEntity.ok(buildResult(body, totalMarks, marksObtained, correct, rawAnswers.size()));
     }
 
@@ -198,6 +235,73 @@ public class QuizzesApiController {
         resp.put("content", results);
         resp.put("total",   results.size());
         return ResponseEntity.ok(resp);
+    }
+
+    // GET /quizzes/{quizId}/marks-sheet — teacher sees all student attempts (marks sheet)
+    @Transactional
+    @GetMapping("/quizzes/{quizId}/marks-sheet")
+    public ResponseEntity<?> getMarksSheet(@PathVariable Long quizId) {
+        List<QuizAttempt> attempts = quizAttemptRepo.findByQuizId(quizId);
+        
+        List<Map<String, Object>> sheet = attempts.stream().map(qa -> {
+            Map<String, Object> m = new LinkedHashMap<>();
+            m.put("attempt_id",    qa.getId());
+            m.put("student_id",    qa.getStudent().getId());
+            m.put("student_name",  qa.getStudent().getName());
+            m.put("student_email", qa.getStudent().getEmail());
+            m.put("score",         qa.getScore());
+            m.put("max_score",     qa.getMaxScore());
+            double pct = qa.getMaxScore() > 0 ? Math.round(qa.getScore() * 100.0 / qa.getMaxScore() * 10.0) / 10.0 : 0;
+            m.put("percentage",    pct);
+            m.put("passed",        pct >= 70.0);
+            m.put("attempted_at",  qa.getAttemptedAt() != null ? qa.getAttemptedAt().toString() : "");
+            m.put("is_locked",     qa.getIsLocked());
+            return m;
+        }).collect(Collectors.toList());
+        
+        return ResponseEntity.ok(Map.of(
+            "quiz_id", quizId,
+            "total_attempts", attempts.size(),
+            "marks_sheet", sheet
+        ));
+    }
+
+    // POST /quizzes/{quizId}/unlock-student/{studentId} — teacher unlocks quiz for specific student
+    @Transactional
+    @PostMapping("/quizzes/{quizId}/unlock-student/{studentId}")
+    public ResponseEntity<?> unlockQuizForStudent(@PathVariable Long quizId, @PathVariable Long studentId) {
+        getCurrentUserId(); // Verify teacher is authenticated
+        
+        quizAttemptRepo.unlockQuizForStudent(studentId, quizId);
+        return ResponseEntity.ok(Map.of("message", "Quiz unlocked for student"));
+    }
+
+    // POST /quizzes/{quizId}/unlock-all — teacher unlocks quiz for all students
+    @Transactional
+    @PostMapping("/quizzes/{quizId}/unlock-all")
+    public ResponseEntity<?> unlockQuizForAllStudents(@PathVariable Long quizId) {
+        getCurrentUserId(); // Verify teacher is authenticated
+        
+        quizAttemptRepo.unlockQuizForAllStudents(quizId);
+        return ResponseEntity.ok(Map.of("message", "Quiz unlocked for all students"));
+    }
+
+    // DELETE /quizzes/{quizId}/marks-sheet — teacher deletes all marks for a quiz
+    @Transactional
+    @DeleteMapping("/quizzes/{quizId}/marks-sheet")
+    public ResponseEntity<?> deleteMarksSheet(@PathVariable Long quizId) {
+        getCurrentUserId(); // Verify teacher is authenticated
+        
+        // Delete attempts
+        quizAttemptRepo.deleteAllByQuizId(quizId);
+        
+        // Optionally delete corresponding student answers too
+        List<StudentAnswer> answers = answerRepo.findByQuizId(quizId);
+        answerRepo.deleteAll(answers);
+        
+        return ResponseEntity.ok(Map.of(
+            "message", "All marks and attempts for this quiz have been deleted"
+        ));
     }
 
     // ─── helpers ─────────────────────────────────────────────────────────────

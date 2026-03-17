@@ -1,5 +1,5 @@
 import React, { useState } from 'react'
-import { ClipboardCheck, Plus, Eye, EyeOff, Trash2, Edit3, Users, CheckCircle2 } from 'lucide-react'
+import { ClipboardCheck, Plus, Eye, EyeOff, Trash2, Edit3, Users, CheckCircle2, BarChart3 } from 'lucide-react'
 import { coursesApi } from '../../api/courses'
 import { dashboardApi, quizManagementApi } from '../../api/index'
 import { useAsync } from '../../hooks/index'
@@ -10,6 +10,7 @@ import Modal from '../../components/common/Modal'
 import Input from '../../components/common/Input'
 import { SectionLoader } from '../../components/common/Spinner'
 import { EmptyState, ErrorState } from '../../components/common/EmptyState'
+import MarksSheet from '../../components/MarksSheet'
 
 // ── Questions Editor ──────────────────────────────────────────────────────────
 function QuestionsEditor({ quizId, onSaved }) {
@@ -117,6 +118,8 @@ function QuestionsEditor({ quizId, onSaved }) {
 // ── Quiz Card ─────────────────────────────────────────────────────────────────
 function QuizCard({ quiz, onTogglePublish, onDelete, onRefresh }) {
   const [expanded, setExpanded] = useState(false)
+  const [showMarksSheet, setShowMarksSheet] = useState(false)
+  
   return (
     <div className="card overflow-hidden">
       <div className="flex items-center gap-4 p-4">
@@ -139,6 +142,11 @@ function QuizCard({ quiz, onTogglePublish, onDelete, onRefresh }) {
             className="p-1.5 rounded-lg text-gray-400 hover:text-brand-500 hover:bg-brand-50 transition-colors" title="Edit questions">
             <Edit3 size={15} />
           </button>
+          <button onClick={() => setShowMarksSheet(true)}
+            className="p-1.5 rounded-lg text-gray-400 hover:text-blue-500 hover:bg-blue-50 transition-colors"
+            title="View marks sheet">
+            <BarChart3 size={15} />
+          </button>
           <button onClick={() => onTogglePublish(quiz)}
             className="p-1.5 rounded-lg text-gray-400 hover:text-green-500 hover:bg-green-50 transition-colors"
             title={quiz.is_published ? 'Unpublish' : 'Publish'}>
@@ -154,6 +162,14 @@ function QuizCard({ quiz, onTogglePublish, onDelete, onRefresh }) {
         <div className="border-t border-gray-100 bg-surface-muted p-4">
           <QuestionsEditor quizId={quiz.id} onSaved={onRefresh} />
         </div>
+      )}
+      
+      {showMarksSheet && (
+        <MarksSheet 
+          quizId={quiz.id} 
+          quizTitle={quiz.title}
+          onClose={() => setShowMarksSheet(false)}
+        />
       )}
     </div>
   )

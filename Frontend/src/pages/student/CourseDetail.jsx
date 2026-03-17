@@ -174,12 +174,39 @@ export default function CourseDetailPage() {
                     <ClipboardList size={13} className="text-violet-600" />
                   </div>
                   <div className="flex-1 min-w-0">
-                    <p className="text-sm font-medium text-ink">{q.title}</p>
-                    <p className="text-xs text-gray-400">{q.question_count} questions · {q.time_limit} min</p>
+                    <div className="flex items-center gap-2">
+                      <p className="text-sm font-medium text-ink">{q.title}</p>
+                      {q.attempted && (
+                        <span className={`text-xs px-2 py-0.5 rounded-full font-semibold ${
+                          q.is_locked 
+                            ? 'bg-red-100 text-red-700' 
+                            : 'bg-green-100 text-green-700'
+                        }`}>
+                          {q.is_locked ? '🔒 Locked' : '✓ Attempted'}
+                        </span>
+                      )}
+                    </div>
+                    <p className="text-xs text-gray-400 mt-1">
+                      {q.question_count} questions · {q.time_limit} min
+                      {q.attempted && q.attempted_score !== undefined && (
+                        <span className="ml-2 text-brand-600 font-medium">
+                          Score: {q.attempted_score}/{q.attempted_max_score}
+                        </span>
+                      )}
+                    </p>
                   </div>
-                  {isEnrolled
-                    ? <Button size="xs" variant="outline" onClick={() => setQuizModal(q)}><Timer size={12} /> Start</Button>
-                    : <Lock size={14} className="text-gray-300" />}
+                  {isEnrolled ? (
+                    q.attempted && q.is_locked ? (
+                      <div className="text-right">
+                        <p className="text-xs text-gray-400 font-medium">Locked</p>
+                        <p className="text-xs text-gray-300">Ask teacher to unlock</p>
+                      </div>
+                    ) : (
+                      <Button size="xs" variant="outline" onClick={() => setQuizModal(q)}>
+                        <Timer size={12} /> {q.attempted ? 'Retry' : 'Start'}
+                      </Button>
+                    )
+                  ) : <Lock size={14} className="text-gray-300" />}
                 </div>
               ))}
               {!quizzes.length && <p className="px-5 py-4 text-sm text-gray-400">No quizzes available yet.</p>}

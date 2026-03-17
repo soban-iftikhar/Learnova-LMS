@@ -9,32 +9,37 @@ import { SectionLoader } from '../../components/common/Spinner'
 import { EmptyState } from '../../components/common/EmptyState'
 import Badge from '../../components/common/Badge'
 
-const POLL = 3000
+// Poll every 5 seconds instead of 3 to reduce request spam
+const POLL = 5000
 
 function ChatWindow({ courseId, courseName, recipientId, recipientName, broadcast, onBack }) {
   const { user } = useAuth()
-  // For private chat we use a sub-channel: courseId__studentId
-  // For broadcast we use courseId directly
   const channelId = broadcast ? String(courseId) : `${courseId}__${recipientId}`
   const [messages, setMessages] = useState([])
   const [text, setText] = useState('')
   const [sending, setSending] = useState(false)
   const [lastTs, setLastTs] = useState(null)
   const bottomRef = useRef(null)
-  const pollRef   = useRef(null)
+  const pollRef = useRef(null)
+  const lastTsRef = useRef(null)  // Use ref to avoid recreating poll callback
 
   const load = useCallback(async () => {
     try {
-      const res  = await chatApi.getMessages(channelId)
+      const res = await chatApi.getMessages(channelId)
       const msgs = res.data?.messages || []
       setMessages(msgs)
-      if (msgs.length) setLastTs(msgs[msgs.length - 1].timestamp)
+      if (msgs.length) {
+        const ts = msgs[msgs.length - 1].timestamp
+        setLastTs(ts)
+        lastTsRef.current = ts
+      }
     } catch {}
   }, [channelId])
 
+  // Poll callback doesn't depend on lastTs — uses ref instead
   const poll = useCallback(async () => {
     try {
-      const res  = await chatApi.getMessages(channelId, lastTs)
+      const res = await chatApi.getMessages(channelId, lastTsRef.current)
       const more = res.data?.messages || []
       if (more.length) {
         setMessages(prev => {
@@ -42,16 +47,23 @@ function ChatWindow({ courseId, courseName, recipientId, recipientName, broadcas
           const fresh = more.filter(m => !seen.has(String(m.id)))
           return fresh.length ? [...prev, ...fresh] : prev
         })
-        setLastTs(more[more.length - 1].timestamp)
+        const ts = more[more.length - 1].timestamp
+        setLastTs(ts)
+        lastTsRef.current = ts
       }
     } catch {}
-  }, [channelId, lastTs])
+  }, [channelId])
 
-  useEffect(() => { load() }, [load])
+  useEffect(() => {
+    load()
+  }, [load])
+
+  // Interval only depends on poll, which is stable
   useEffect(() => {
     pollRef.current = setInterval(poll, POLL)
     return () => clearInterval(pollRef.current)
   }, [poll])
+
   useEffect(() => {
     bottomRef.current?.scrollIntoView({ behavior: 'smooth' })
   }, [messages])
@@ -64,13 +76,19 @@ function ChatWindow({ courseId, courseName, recipientId, recipientName, broadcas
     try {
       const res = await chatApi.send(channelId, t)
       const msg = res.data
+      if (!msg || !msg.id) {
+        setSending(false)
+        return
+      }
       setMessages(prev => {
         const seen = new Set(prev.map(m => String(m.id)))
         return seen.has(String(msg.id)) ? prev : [...prev, msg]
       })
       setLastTs(msg.timestamp)
       setText('')
-    } catch {}
+    } catch (err) {
+      // Silent fail for UX
+    }
     setSending(false)
   }
 
