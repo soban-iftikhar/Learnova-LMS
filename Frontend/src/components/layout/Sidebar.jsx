@@ -34,6 +34,19 @@ const NAV_BY_ROLE = {
       { to: '/teacher/settings', label: 'Settings', icon: Settings },
     ]},
   ],
+  ADMIN: [
+    { group: 'Main', items: [
+      { to: '/admin',               label: 'Dashboard',      icon: LayoutDashboard },
+    ]},
+    { group: 'Management', items: [
+      { to: '/admin/students',      label: 'Manage Students',     icon: GraduationCap },
+      { to: '/admin/instructors',   label: 'Manage Instructors',  icon: UserCog },
+      { to: '/admin/courses',       label: 'Manage Courses',      icon: BookOpen },
+    ]},
+    { group: 'Account', items: [
+      { to: '/admin/settings', label: 'Settings', icon: Settings },
+    ]},
+  ],
 }
 
 const ROLE_BADGE = {

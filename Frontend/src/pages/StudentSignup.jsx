@@ -52,7 +52,7 @@ const StudentSignup = () => {
   return (
     <div className="min-h-screen flex">
       <div className="hidden lg:flex lg:w-1/2 bg-gradient-to-br from-ink to-ink-soft relative overflow-hidden p-12 flex-col justify-between">
-        <Logo size="lg" linkTo="/" />
+        <Logo size="lg" linkTo="/" textWhite />
         <div className="space-y-6">
           {[
             { icon: GraduationCap, title: 'Learn at your own pace', desc: 'Access courses anytime, anywhere, on any device.' },

@@ -55,7 +55,7 @@ export default function TeacherDashboard() {
       ) : (
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 animate-slide-up">
           <StatCard label="Total Courses"   value={data?.total_courses ?? 0}     icon={BookOpen}      color="brand"  />
-          <StatCard label="Unique Students" value={data?.total_students ?? 0}    icon={Users}         color="sky"    />
+          <StatCard label="Enrolled Students" value={data?.total_students ?? 0}    icon={Users}         color="sky"    />
           <StatCard label="Enrollments"     value={data?.total_enrollments ?? 0} icon={ClipboardCheck} color="violet" />
           <StatCard
             label="Average Rating"
