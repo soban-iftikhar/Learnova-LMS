@@ -84,5 +84,12 @@ export const analyticsApi = {
     apiClient.get(`/courses/${courseId}/analytics`, { params }),
 }
 
+// ─── Admin (user management) ──────────────────────────────────────────────────
+export const adminApi = {
+  getUsers:         (params = {}) => apiClient.get('/admin/users', { params }),
+  deleteUser:       (userId)      => apiClient.delete(`/admin/users/${userId}`),
+  updateUserStatus: (userId, status) => apiClient.put(`/admin/users/${userId}/status`, { status }),
+}
+
 // ─── Re-export courses ────────────────────────────────────────────────────────
 export { coursesApi } from './courses'
