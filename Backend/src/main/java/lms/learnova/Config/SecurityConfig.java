@@ -1,8 +1,10 @@
 package lms.learnova.Config;
 
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
+import org.springframework.core.env.Environment;
 import org.springframework.security.authentication.AuthenticationManager;
 import org.springframework.security.authentication.AuthenticationProvider;
 import org.springframework.security.authentication.dao.DaoAuthenticationProvider;
@@ -41,18 +43,18 @@ public class SecurityConfig {
     private final UserDetailsService   userDetailsService;
     private final OAuth2SuccessHandler oAuth2SuccessHandler;
     private final PasswordEncoder      passwordEncoder;
-
-    @Value("${cors.allowed-origins:http://localhost:3000,http://localhost:5173,http://localhost:5174}")
-    private String allowedOriginsStr;
+    private final Environment          environment;
 
     public SecurityConfig(JWTFilter jwtFilter,
                           UserDetailsService userDetailsService,
                           OAuth2SuccessHandler oAuth2SuccessHandler,
-                          PasswordEncoder passwordEncoder) {
+                          PasswordEncoder passwordEncoder,
+                          Environment environment) {
         this.jwtFilter            = jwtFilter;
         this.userDetailsService   = userDetailsService;
         this.oAuth2SuccessHandler = oAuth2SuccessHandler;
         this.passwordEncoder      = passwordEncoder;
+        this.environment          = environment;
     }
 
     @Bean
@@ -83,6 +85,17 @@ public class SecurityConfig {
     @Bean
     public CorsConfigurationSource corsConfigurationSource() {
         CorsConfiguration config = new CorsConfiguration();
+        
+        // Try to get CORS origins from environment variables or properties
+        String allowedOriginsStr = environment.getProperty("CORS_ALLOWED_ORIGINS");
+        if (allowedOriginsStr == null) {
+            allowedOriginsStr = environment.getProperty("cors.allowed-origins");
+        }
+        if (allowedOriginsStr == null) {
+            // Default fallback for local development
+            allowedOriginsStr = "http://localhost:3000,http://localhost:5173,http://localhost:5174";
+        }
+        
         List<String> allowedOrigins = Arrays.asList(allowedOriginsStr.split(","));
         config.setAllowedOrigins(allowedOrigins);
         config.setAllowedMethods(Arrays.asList("GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"));
