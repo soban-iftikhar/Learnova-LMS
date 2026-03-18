@@ -15,7 +15,6 @@ import SignupPage    from './pages/SignupPage'
 import StudentSignup from './pages/StudentSignup'
 import TeacherSignup from './pages/TeacherSignup'
 
-// Student
 const StudentDashboard  = lazy(() => import('./pages/student/Dashboard'))
 const CoursesPage       = lazy(() => import('./pages/student/Courses'))
 const BrowseCoursesPage = lazy(() => import('./pages/student/BrowseCourses'))
@@ -23,7 +22,6 @@ const CourseDetailPage  = lazy(() => import('./pages/student/CourseDetail'))
 const ProgressPage      = lazy(() => import('./pages/student/Progress'))
 const SettingsPage      = lazy(() => import('./pages/student/Settings'))
 
-// Teacher
 const TeacherDashboard   = lazy(() => import('./pages/teacher/Dashboard'))
 const TeacherCourses     = lazy(() => import('./pages/teacher/Courses'))
 const CreateCourse       = lazy(() => import('./pages/teacher/CreateCourse'))
@@ -34,13 +32,11 @@ const TeacherQuizzes     = lazy(() => import('./pages/teacher/Quizzes'))
 const TeacherChat        = lazy(() => import('./pages/teacher/Chat'))
 const TeacherSettings    = lazy(() => import('./pages/teacher/Settings'))
 
-// Admin
 const AdminDashboard   = lazy(() => import('./pages/admin/Dashboard'))
 const AdminStudents    = lazy(() => import('./pages/admin/Students'))
 const AdminInstructors = lazy(() => import('./pages/admin/Instructors'))
 const AdminCourses     = lazy(() => import('./pages/admin/Courses'))
 
-// Public
 const AboutPage     = lazy(() => import('./pages/AboutPage'))
 const ContactPage   = lazy(() => import('./pages/ContactPage'))
 const NotFoundPage  = lazy(() => import('./pages/NotFoundPage'))

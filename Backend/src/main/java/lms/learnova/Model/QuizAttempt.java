@@ -46,7 +46,7 @@ public class QuizAttempt {
     private Integer maxScore;
     
     @Column(name = "is_locked", nullable = false)
-    private Boolean isLocked = true; // Locked by default after first attempt
+    private Boolean isLocked = true;
     
     @PrePersist
     protected void onCreate() {

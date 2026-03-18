@@ -42,7 +42,7 @@ export const AuthProvider = ({ children }) => {
     localStorage.setItem('access_token', access_token)
     localStorage.setItem('refresh_token', refresh_token)
     setUser(userData)
-    return userData          // caller uses role to redirect
+    return userData
   }, [])
 
   const register = useCallback(async (formData) => {

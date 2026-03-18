@@ -14,6 +14,9 @@ import lms.learnova.Service.CourseContentService;
 import lms.learnova.Service.CourseService;
 import lms.learnova.Service.EnrollmentService;
 import lms.learnova.exception.UnauthorizedException;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.PageRequest;
+import org.springframework.data.domain.Pageable;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.Authentication;
@@ -63,45 +66,34 @@ public class CoursesApiController {
             @RequestParam(required = false)     String status,
             @RequestParam(required = false)     String mine) {
 
-        List<Course> all = courseService.getAllCourses();
+        Pageable pageable = PageRequest.of(Math.max(0, page - 1), size);
+        Page<Course> coursePage;
 
-        if ("true".equalsIgnoreCase(mine)) {
-            try {
-                Authentication auth = SecurityContextHolder.getContext().getAuthentication();
-                if (auth != null) {
-                    User user = userRepo.findByEmail(auth.getName());
-                    if (user instanceof Instructor) {
-                        final Long iid = user.getId();
-                        all = all.stream()
-                                .filter(c -> c.getInstructor() != null && c.getInstructor().getId().equals(iid))
-                                .collect(Collectors.toList());
-                    }
+        try {
+            Authentication auth = SecurityContextHolder.getContext().getAuthentication();
+            if ("true".equalsIgnoreCase(mine) && auth != null && auth.isAuthenticated()) {
+                User user = userRepo.findByEmail(auth.getName());
+                if (user instanceof Instructor) {
+                    coursePage = courseService.getInstructorCourses(user.getId(), pageable);
+                } else {
+                    coursePage = courseService.getCoursesWithFilters(search, category, pageable);
                 }
-            } catch (Exception ignored) {}
+            } else {
+                coursePage = courseService.getCoursesWithFilters(search, category, pageable);
+            }
+        } catch (Exception e) {
+            coursePage = courseService.getCoursesWithFilters(search, category, pageable);
         }
 
-        List<Course> filtered = all.stream()
-                .filter(c -> search == null || search.isBlank() ||
-                        c.getTitle().toLowerCase().contains(search.toLowerCase()) ||
-                        (c.getDescription() != null && c.getDescription().toLowerCase().contains(search.toLowerCase())))
-                .filter(c -> category == null || category.isBlank() ||
-                        (c.getCategory() != null && c.getCategory().equalsIgnoreCase(category)))
-                .collect(Collectors.toList());
-
-        int total      = filtered.size();
-        int totalPages = (int) Math.ceil((double) total / size);
-        int from       = Math.min((page - 1) * size, total);
-        int to         = Math.min(from + size, total);
-
-        List<Map<String, Object>> content = filtered.subList(from, to).stream()
+        List<Map<String, Object>> content = coursePage.getContent().stream()
                 .map(this::toCourseMap)
                 .collect(Collectors.toList());
 
         Map<String, Object> pagination = new LinkedHashMap<>();
-        pagination.put("page",           page);
-        pagination.put("size",           size);
-        pagination.put("total_elements", total);
-        pagination.put("total_pages",    totalPages);
+        pagination.put("page",           coursePage.getNumber() + 1);
+        pagination.put("size",           coursePage.getSize());
+        pagination.put("total_elements", coursePage.getTotalElements());
+        pagination.put("total_pages",    coursePage.getTotalPages());
 
         Map<String, Object> resp = new LinkedHashMap<>();
         resp.put("content",    content);

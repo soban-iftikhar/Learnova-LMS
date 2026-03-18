@@ -65,8 +65,6 @@ public class TeacherStudentController {
             info.put("bio",   profile.getBio()         != null ? profile.getBio()         : "");
             info.put("phone", profile.getPhoneNumber() != null ? profile.getPhoneNumber() : "");
         }
-
-        // Enrolled courses
         List<Enrollment> enrollments = enrollmentRepo.findByStudentId(studentId).stream()
                 .filter(e -> !"DROPPED".equalsIgnoreCase(e.getStatus()))
                 .collect(Collectors.toList());

@@ -10,16 +10,9 @@ import Badge from '../../components/common/Badge'
 import Button from '../../components/common/Button'
 import { SectionLoader } from '../../components/common/Spinner'
 import { EmptyState, ErrorState } from '../../components/common/EmptyState'
+import { PALETTE, getPaletteColor } from '../../components/CourseCard'
 
 const CATEGORIES = ['All', 'Programming', 'Web Development', 'Design', 'Data Science', 'Business', 'Mathematics', 'Science', 'Language']
-
-const PLACEHOLDER_IMAGES = [
-  'https://images.unsplash.com/photo-1516321318423-f06f85e504b3?w=400&h=200&fit=crop',
-  'https://images.unsplash.com/photo-1498050108023-c5249f4df085?w=400&h=200&fit=crop',
-  'https://images.unsplash.com/photo-1461749280684-dccba630e2f6?w=400&h=200&fit=crop',
-  'https://images.unsplash.com/photo-1555066931-4365d14bab8c?w=400&h=200&fit=crop',
-  'https://images.unsplash.com/photo-1519389950473-47ba0277781c?w=400&h=200&fit=crop',
-]
 
 export default function BrowseCourses() {
   const navigate = useNavigate()
@@ -97,7 +90,7 @@ export default function BrowseCourses() {
         </div>
       </div>
 
-      {/* Results count */}
+      {/* Display course count or empty state */}
       {!loading && !error && (
         <p className="text-sm text-gray-400">{courses.length} course{courses.length !== 1 ? 's' : ''} found</p>
       )}
@@ -119,14 +112,19 @@ export default function BrowseCourses() {
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-5">
           {courses.map((course, idx) => {
             const isEnrolled = enrolled.has(course.id)
-            const img = course.image_url || PLACEHOLDER_IMAGES[idx % PLACEHOLDER_IMAGES.length]
+            const palette = getPaletteColor(course.id)
             return (
               <div key={course.id} className="card-hover group flex flex-col">
-                {/* Thumbnail */}
-                <div className="aspect-video overflow-hidden bg-gray-100">
-                  <img src={img} alt={course.title}
-                    className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-105"
-                    onError={e => { e.currentTarget.src = PLACEHOLDER_IMAGES[idx % PLACEHOLDER_IMAGES.length] }} />
+                {/* Course thumbnail — image or color with title */}
+                <div className="relative aspect-video overflow-hidden bg-gray-100">
+                  {course.image_url ? (
+                    <img src={course.image_url} alt={course.title}
+                      className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-105" />
+                  ) : (
+                    <div className={`${palette.bg} ${palette.text} w-full h-full flex items-center justify-center p-4`}>
+                      <p className="text-center font-semibold text-sm leading-tight line-clamp-2">{course.title}</p>
+                    </div>
+                  )}
                 </div>
 
                 {/* Body */}

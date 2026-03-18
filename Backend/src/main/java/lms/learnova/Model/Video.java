@@ -17,5 +17,5 @@ public class Video extends CourseContent {
     private String thumbnailPath;
 
     @Column(name = "video_url")
-    private String videoUrl; // URL to video hosting service (e.g., Cloudinary)
+    private String videoUrl;
 }

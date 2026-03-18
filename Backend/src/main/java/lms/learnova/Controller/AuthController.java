@@ -45,14 +45,13 @@ public class AuthController {
     private final UserRepo userRepo;
     private final PasswordEncoder passwordEncoder;
 
-    // Admin credentials come purely from environment variables — never stored in DB
-    @Value("${ADMIN_EMAIL:admin@learnova.io}")
+    @Value("${ADMIN_EMAIL}")
     private String adminEmail;
 
-    @Value("${ADMIN_PASSWORD:admin123}")
+    @Value("${ADMIN_PASSWORD}")
     private String adminPassword;
 
-    @Value("${ADMIN_NAME:Administrator}")
+    @Value("${ADMIN_NAME}")
     private String adminName;
 
     public AuthController(StudentService studentService,

@@ -30,7 +30,7 @@ public class JWTFilter extends OncePerRequestFilter {
     private final JWTService jwtService;
     private final UserDetailsService userDetailsService;
 
-    @Value("${ADMIN_EMAIL:admin@learnova.io}")
+    @Value("${ADMIN_EMAIL}")
     private String adminEmail;
 
     public JWTFilter(JWTService jwtService, UserDetailsService userDetailsService) {

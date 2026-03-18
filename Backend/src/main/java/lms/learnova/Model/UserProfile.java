@@ -26,7 +26,7 @@ public class UserProfile {
     private String phoneNumber;
 
     @Column(name = "date_of_birth")
-    private String dateOfBirth; // ISO format: YYYY-MM-DD
+    private String dateOfBirth;
 
     @Column(name = "profile_picture_path")
     private String profilePicturePath;

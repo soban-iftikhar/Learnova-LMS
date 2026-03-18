@@ -35,7 +35,7 @@ export default function MarksSheet({ quizId, quizTitle, onClose }) {
     try {
       await apiClient.post(`/quizzes/${quizId}/unlock-student/${studentId}`);
       toast?.success(`Quiz unlocked for student`);
-      fetchMarksSheet(); // Refresh
+      fetchMarksSheet()
     } catch (err) {
       toast?.error('Failed to unlock quiz');
     }

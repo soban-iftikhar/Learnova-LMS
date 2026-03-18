@@ -4,8 +4,9 @@ import { User, Star, Users, ArrowRight, BookOpen } from 'lucide-react'
 import ProgressBar from './common/ProgressBar'
 import Badge from './common/Badge'
 
-// Palette for courses without an image — deterministic by course ID
-const PALETTE = [
+// Deterministic color palette for course thumbnails based on ID.
+// Ensures consistent colors across sessions while providing visual variety.
+export const PALETTE = [
   { bg: 'bg-brand-500',  text: 'text-white' },
   { bg: 'bg-violet-500', text: 'text-white' },
   { bg: 'bg-sky-500',    text: 'text-white' },
@@ -14,12 +15,13 @@ const PALETTE = [
   { bg: 'bg-emerald-500',text: 'text-white' },
 ]
 
-const palette = (id) => PALETTE[(id || 0) % PALETTE.length]
+// Select palette color based on course ID — deterministic hashing.
+export const getPaletteColor = (id) => PALETTE[(id || 0) % PALETTE.length]
 
 const CourseCard = ({ course, progress, enrollmentId, compact = false }) => {
   const hasImage = !!course.image_url
-  const p        = palette(course.id)
-  const pct      = progress ?? 0
+  const p = getPaletteColor(course.id)
+  const pct = progress ?? 0
   const instructor = course.instructor?.name || course.instructor || 'Instructor'
 
   return (

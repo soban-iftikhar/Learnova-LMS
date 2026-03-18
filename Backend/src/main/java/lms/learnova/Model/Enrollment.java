@@ -31,7 +31,7 @@ public class Enrollment {
     private LocalDate enrollmentDate = LocalDate.now();
 
     @Column(name = "status")
-    private String status = "ACTIVE"; // ACTIVE, COMPLETED, DROPPED
+    private String status = "ACTIVE";
 
     @Column(name = "created_at")
     private LocalDateTime createdAt;

@@ -30,7 +30,7 @@ public class StudentAnswer {
     private QuizQuestion question;
 
     @Column(name = "selected_answer")
-    private String selectedAnswer; // A, B, C, D, or null if not answered
+    private String selectedAnswer;
 
     @Column(name = "is_correct")
     private Boolean isCorrect = false;

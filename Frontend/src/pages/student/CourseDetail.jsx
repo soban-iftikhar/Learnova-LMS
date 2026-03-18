@@ -16,8 +16,7 @@ import Modal from '../../components/common/Modal'
 import CourseChat from '../../components/common/CourseChat'
 import { PageLoader, SectionLoader } from '../../components/common/Spinner'
 import { ErrorState } from '../../components/common/EmptyState'
-
-const PLACEHOLDER = 'https://images.unsplash.com/photo-1516321318423-f06f85e504b3?w=800&h=400&fit=crop'
+import { getPaletteColor } from '../../components/CourseCard'
 
 function toEmbedUrl(url) {
   if (!url) return ''
@@ -45,10 +44,11 @@ export default function CourseDetailPage() {
   const { data: quizzesData }    = useAsync(() => quizzesApi.getAll(id), [id])
   const { data: myEnrollments, refetch: refetchEnrollments } = useAsync(() => enrollmentsApi.getMyCourses({ size: 200 }), [])
 
-  const videos      = videosData?.content  || []
-  const quizzes     = (quizzesData?.content || []).filter(q => q.status === 'ACTIVE')
-  const myEnrollment= myEnrollments?.content?.find(e => e.course?.id === Number(id))
-  const isEnrolled  = !!myEnrollment
+  const videos = videosData?.content || []
+  // Filter only published quizzes for student viewing
+  const quizzes = (quizzesData?.content || []).filter(q => q.status === 'ACTIVE')
+  const myEnrollment = myEnrollments?.content?.find(e => e.course?.id === Number(id))
+  const isEnrolled = !!myEnrollment
 
   const handleEnroll = async () => {
     setEnrolling(true)
@@ -117,7 +117,8 @@ export default function CourseDetailPage() {
                 {course.image_url ? (
                   <img src={course.image_url} alt={course.title} className="w-full h-full object-cover" />
                 ) : (
-                  <div className="w-full h-full bg-brand-500 flex items-center justify-center p-6">
+                  // Deterministic color based on course ID for consistency
+                  <div className={`w-full h-full ${getPaletteColor(course.id).bg} flex items-center justify-center p-6`}>
                     <p className="text-white font-bold text-2xl text-center leading-tight">{course.title}</p>
                   </div>
                 )}

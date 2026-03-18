@@ -14,7 +14,7 @@ const POLL = 3000
 export default function CourseChat({ courseId, courseName, instructorName }) {
   const { user } = useAuth()
   const [open, setOpen]         = useState(false)
-  const [messages, setMessages] = useState([])  // merged private + broadcast
+  const [messages, setMessages] = useState([])
   const [text, setText]         = useState('')
   const [sending, setSending]   = useState(false)
   const [lastTs, setLastTs]     = useState(null)

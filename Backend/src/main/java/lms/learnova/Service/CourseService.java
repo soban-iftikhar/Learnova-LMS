@@ -6,6 +6,8 @@ import lms.learnova.exception.ResourceNotFoundException;
 import lms.learnova.Model.Course;
 import lms.learnova.Model.Instructor;
 import lms.learnova.Repository.CourseRepo;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
 import java.util.List;
 
@@ -52,10 +54,6 @@ public class CourseService {
         return course;
     }
 
-    /**
-     * FIXED: no longer requires instructorId in request body.
-     * Only updates provided fields; instructor unchanged unless instructorId explicitly supplied.
-     */
     public Course updateCourse(Long courseId, UpdateCourseRequest request) {
         if (courseId == null) throw new IllegalArgumentException("Course id is required");
         Course existing = courseRepository.findById(courseId)
@@ -72,4 +70,13 @@ public class CourseService {
 
         return courseRepository.save(existing);
     }
+
+    public Page<Course> getCoursesWithFilters(String search, String category, Pageable pageable) {
+        return courseRepository.findCoursesWithFilters(search, category, pageable);
+    }
+
+    public Page<Course> getInstructorCourses(Long instructorId, Pageable pageable) {
+        return courseRepository.findByInstructorIdPaginated(instructorId, pageable);
+    }
 }
+

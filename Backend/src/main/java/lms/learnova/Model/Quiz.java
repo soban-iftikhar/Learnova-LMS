@@ -35,10 +35,10 @@ public class Quiz {
     private Integer timeLimitSeconds = -1;
 
     @Column(name = "start_time")
-    private java.time.LocalDateTime startTime; // when quiz becomes available
+    private java.time.LocalDateTime startTime;
 
     @Column(name = "end_time")
-    private java.time.LocalDateTime endTime; // deadline to submit
+    private java.time.LocalDateTime endTime;
 
     @Column(name = "shuffle_questions")
     private Boolean shuffleQuestions = false;

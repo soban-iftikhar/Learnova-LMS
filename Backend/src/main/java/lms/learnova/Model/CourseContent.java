@@ -30,7 +30,7 @@ public class CourseContent {
     @Column(name = "file_path")
     private String filePath;
 
-    @Column(name = "file_size") // in bytes
+    @Column(name = "file_size")
     private Long fileSize;
 
     @Column(name = "uploaded_at")
@@ -44,7 +44,7 @@ public class CourseContent {
     private Boolean isPublished = true;
 
     @Column(name = "order_index")
-    private Integer orderIndex; // for ordering content within course
+    private Integer orderIndex;
 
     @PrePersist
     protected void onCreate() {

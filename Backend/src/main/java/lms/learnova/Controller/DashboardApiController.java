@@ -15,18 +15,6 @@ import org.springframework.web.bind.annotation.*;
 import java.util.*;
 import java.util.stream.Collectors;
 
-/**
- * FIXED: N+1 query storm eliminated.
- *
- * Root cause: the previous version called enrollmentRepo.findAll() and
- * studentAnswerRepo.findAll() — these load EVERY row in those tables, then
- * for each row lazily trigger additional selects for student, quiz, course,
- * user_profile, etc., causing hundreds of queries and an Internal Server Error.
- *
- * Fix: replaced findAll() with course-scoped queries:
- *   enrollmentRepo.findByCourseIdsActive(courseIds)   — only this instructor's courses
- *   studentAnswerRepo.findByCourseIds(courseIds)       — only this instructor's courses
- */
 @RestController
 @RequestMapping("/dashboard")
 public class DashboardApiController {
@@ -40,7 +28,7 @@ public class DashboardApiController {
     private final QuizRepo           quizRepo;
     private final RatingApiController ratingController;
 
-    @Value("${ADMIN_EMAIL:admin@learnova.io}")
+    @Value("${ADMIN_EMAIL}")
     private String adminEmail;
 
     public DashboardApiController(EnrollmentService enrollmentService,
@@ -108,7 +96,6 @@ public class DashboardApiController {
                 .collect(Collectors.toList());
 
         if (courses.isEmpty()) {
-            // Return empty dashboard immediately — no DB queries needed
             Map<String, Object> empty = new LinkedHashMap<>();
             empty.put("total_courses",     0);
             empty.put("total_students",    0);
@@ -123,24 +110,16 @@ public class DashboardApiController {
         }
 
         List<Long> courseIds = courses.stream().map(Course::getId).collect(Collectors.toList());
-
-        // 2. Load all enrollments for these courses IN ONE QUERY
         List<Enrollment> allEnrollments = enrollmentRepo.findByCourseIdsActive(courseIds);
-
-        // 3. Unique students across all enrollments
         Set<Long> uniqueStudentIds = allEnrollments.stream()
                 .map(e -> e.getStudent().getId())
                 .collect(Collectors.toSet());
 
-        // 4. Per-course enrollment count (built from the list we already have — no extra queries)
         Map<Long, Long> enrCountByCourse = allEnrollments.stream()
                 .collect(Collectors.groupingBy(
                         e -> e.getCourse().getId(), Collectors.counting()));
 
-        // 5. Ratings
         double avgRating = ratingController.getAverageRatingForCourses(courseIds);
-
-        // 6. Per-course summary
         List<Map<String, Object>> courseList = courses.stream().map(c -> {
             double cRating = ratingController.getAverageRating(c.getId());
             Map<String, Object> m = new LinkedHashMap<>();
@@ -152,7 +131,6 @@ public class DashboardApiController {
             return m;
         }).collect(Collectors.toList());
 
-        // 7. Recent enrollments — top 10, already sorted DESC by query
         List<Map<String, Object>> recentEnrollments = allEnrollments.stream()
                 .limit(10)
                 .map(e -> {
@@ -167,20 +145,16 @@ public class DashboardApiController {
                     return m;
                 }).collect(Collectors.toList());
 
-        // 8. Recent quiz submissions — scoped to this instructor's courses only
         List<StudentAnswer> rawAnswers = studentAnswerRepo.findByCourseIds(courseIds);
-
-        // Deduplicate: one entry per (student, quiz) — take latest per pair
         Map<String, StudentAnswer> latestByStudentQuiz = new LinkedHashMap<>();
         for (StudentAnswer sa : rawAnswers) {
             String key = sa.getStudent().getId() + ":" + sa.getQuiz().getId();
-            latestByStudentQuiz.putIfAbsent(key, sa); // already sorted DESC by submittedAt
+            latestByStudentQuiz.putIfAbsent(key, sa);
         }
 
         List<Map<String, Object>> recentQuizSubs = latestByStudentQuiz.values().stream()
                 .limit(10)
                 .map(sa -> {
-                    // Compute total score for this student+quiz
                     List<StudentAnswer> quizAnswers = studentAnswerRepo
                             .findByStudentIdAndQuizId(sa.getStudent().getId(), sa.getQuiz().getId());
                     int obtained = quizAnswers.stream()
