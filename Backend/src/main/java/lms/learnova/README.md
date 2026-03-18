@@ -1,55 +1,9 @@
-# Learnova LMS — Backend Fix Notes
+# Backend Source Code
 
-## What Was Changed & Why
+The backend API implementation for Learnova LMS.
 
-### 1. New `AuthController` (`/api/auth/*`)
-| Endpoint | Before | After |
-|---|---|---|
-| Register | `POST /student/registerStudent` | `POST /api/auth/register` (role field selects student/instructor) |
-| Login | `POST /student/login` → returns raw JWT string | `POST /api/auth/login` → returns `{ access_token, refresh_token, user }` |
-| Refresh | ❌ Missing | `POST /api/auth/refresh` with `Authorization: Bearer <refresh_token>` |
-| Logout | ❌ Missing | `POST /api/auth/logout` |
-| Get me | ❌ Missing | `GET /api/auth/me` |
+See [Backend README](../../../README.md) for architecture and API documentation.
 
-### 2. New `CoursesApiController` (`/api/courses/*`)
-Replaces the old `/course/getAllCourses`, `/course/addCourse` etc. with the REST-style routes expected by the frontend.
-Response shapes now include `category: { id, name }` and `instructor: { id, name }` objects instead of flat strings.
-
-### 3. New `EnrollmentsApiController` (`/api/enrollments/*`)
-- `POST /api/enrollments` now accepts `{ course_id }` and resolves the student from the JWT automatically
-- `GET /api/enrollments/my-courses` returns paginated enrollments with nested course object
-
-### 4. New `DashboardApiController` (`/api/dashboard/*`)
-- `GET /api/dashboard/student` — was completely missing
-- `GET /api/dashboard/instructor`
-- `GET /api/dashboard/admin`
-
-### 5. New `QuizzesApiController`
-- `GET /api/courses/{id}/quizzes`
-- `POST /api/quizzes/{id}/start`
-- `POST /api/quizzes/{id}/submit`
-
-### 6. New `AssignmentsApiController`
-- `GET /api/courses/{id}/assignments`
-- `POST /api/assignments/{id}/submit` (multipart)
-- `PUT /api/assignments/{id}/submissions/{sid}/grade`
-
-### 7. New `CategoriesApiController` + `AdminApiController` + `AnalyticsApiController`
-All new, matching frontend docs exactly.
-
-### 8. `SecurityConfig` — CORS & public routes
-- Added `http://localhost:3000` (Vite default) to allowed origins
-- Permitted `/auth/*` endpoints publicly
-- Removed OAuth2 login config (not wired to Google yet)
-
-### 9. `JWTService` — refresh token
-Added `generateRefreshToken()` with a separate 7-day TTL.
-
-### 10. `CourseContentDTO` — expanded fields
-Added `videoUrl`, `durationMinutes`, `isAssignment`, `dueDate`, `orderIndex` so the frontend content views work.
-
-### 11. `application.properties` (new file)
-Sets `server.servlet.context-path=/api` so every controller is automatically under `/api`.
 
 ---
 

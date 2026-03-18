@@ -1,53 +1,76 @@
 # Learnova LMS - Backend
 
-Spring Boot 3.4.4 REST API for Learning Management System with JWT authentication and role-based access control.
+RESTful API for the Learnova Learning Management System built with Spring Boot.
+
+## Tech Stack
+
+- **Java 21**
+- **Spring Boot 3.4.4**
+- **PostgreSQL**
+- **JWT Authentication**
+- **Spring Security**
 
 ## Quick Start
 
 ### Prerequisites
 - Java 21 JDK
-- PostgreSQL 12+ (or use free cloud option)
-- Maven 3.9+
+- PostgreSQL 12+
+- Maven
 
-### Setup
+### Set Environment Variables
 
-**Option 1: Free Cloud PostgreSQL (Recommended)**
-1. Sign up at one of these (all have free tier):
-   - https://neon.tech/ (easiest)
-   - https://supabase.com/
-   - https://railway.app/
-   - https://render.com/
-
-2. Create a project and get:
-   - Host (e.g., `ep-cool-name.us-west-2.neon.tech`)
-   - Database name (e.g., `neondb`)
-   - Username (e.g., `neondb_owner`)
-   - Password (generated for you)
-
-**Option 2: Local PostgreSQL**
 ```bash
-# Install PostgreSQL locally
-# macOS: brew install postgresql
-# Ubuntu: sudo apt-get install postgresql
-
-# Create database
-createdb learnova
-
-# Create user
-psql -c "CREATE USER learnova_user WITH PASSWORD 'your_password';"
-psql -c "ALTER ROLE learnova_user WITH CREATEDB;"
+export DB_URL=jdbc:postgresql://host:port/database?sslmode=require
+export DB_USERNAME=your_username
+export DB_PASSWORD=your_password
+export JWT_SECRET=your_jwt_secret_here
+export JWT_EXPIRATION_MS=86400000
+export ADMIN_EMAIL=admin@learnova.io
+export ADMIN_PASSWORD=your_secure_password
+export CORS_ALLOWED_ORIGINS=http://localhost:3000,http://localhost:5173
+export SERVER_PORT=8080
 ```
 
 ### Build & Run
 
 ```bash
-# Build JAR
+# Build
 ./mvnw clean package -DskipTests
 
-# Set environment variables
-export DB_URL=jdbc:postgresql://your-host:5432/learnova?sslmode=require
-export DB_USERNAME=your_username
-export DB_PASSWORD=your_password
+# Run
+java -jar target/Learnova-0.0.1-SNAPSHOT.jar
+```
+
+## Project Structure
+
+```
+Backend/
+├── src/main/java/lms/learnova/
+│   ├── Config/          # Security & application configuration
+│   ├── Controller/      # REST API endpoints
+│   ├── Model/           # Entity classes
+│   ├── Repository/      # Data access layer
+│   ├── Service/         # Business logic
+│   └── DTO/             # Data transfer objects
+├── pom.xml              # Maven dependencies
+└── Dockerfile           # Docker build configuration
+```
+
+## API Endpoints
+
+Base URL: `/api`
+
+- **Auth**: `/auth/register`, `/auth/login`, `/auth/refresh`, `/auth/logout`
+- **Courses**: `/courses` (GET, POST, PUT, DELETE)
+- **Enrollments**: `/enrollments` (GET, POST, DELETE)
+- **Dashboard**: `/dashboard/student`, `/dashboard/instructor`, `/dashboard/admin`
+- **Quizzes**: `/quizzes`, `/courses/{id}/quizzes`
+- **Chat**: `/chat/{channelId}/messages`
+
+## Deployment
+
+Deployed on Render. Set the `CORS_ALLOWED_ORIGINS` environment variable to include your frontend URL.
+
 export JWT_SECRET=$(openssl rand -base64 256)
 export JWT_EXPIRATION_MS=86400000
 
